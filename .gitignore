@@ -6,3 +6,6 @@ blob-report/
 .playwright/
 *.log
 .env*
+
+# 로컬 전용 (녹음 원본이 담긴 확인용 파일 등)
+local/
