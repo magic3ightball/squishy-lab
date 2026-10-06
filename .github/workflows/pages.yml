@@ -1,0 +1,40 @@
+# main에 push하면 정적 파일을 그대로 GitHub Pages에 배포 (빌드 단계 없음)
+name: Pages 배포
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 공개할 파일만 _site에 모음 (테스트·문서·설정 파일은 배포하지 않음)
+      - name: 배포 파일 모으기
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r nice-cube air-squishy _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

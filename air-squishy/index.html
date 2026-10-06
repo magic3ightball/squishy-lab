@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>공중 말랑이</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg-top: #e9e4ff;
+    --bg-bottom: #ffe3ef;
+    --ink: #2b2450;
+    --ink-soft: #6b6494;
+    --panel: rgba(255,255,255,.62);
+    --panel-edge: rgba(255,255,255,.9);
+    --panel-solid: rgba(251,249,255,.97);
+    --accent: #5b43e8;
+    --shadow: rgba(60,40,140,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg-top: #1b1740;
+      --bg-bottom: #35153a;
+      --ink: #f1ecff;
+      --ink-soft: #b3a9de;
+      --panel: rgba(30,24,70,.62);
+      --panel-edge: rgba(255,255,255,.14);
+      --panel-solid: rgba(32,26,74,.97);
+      --accent: #9a86ff;
+      --shadow: rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg-top: #1b1740;
+    --bg-bottom: #35153a;
+    --ink: #f1ecff;
+    --ink-soft: #b3a9de;
+    --panel: rgba(30,24,70,.62);
+    --panel-edge: rgba(255,255,255,.14);
+    --panel-solid: rgba(32,26,74,.97);
+    --accent: #9a86ff;
+    --shadow: rgba(0,0,0,.4);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: linear-gradient(170deg, var(--bg-top), var(--bg-bottom));
+    color: var(--ink);
+    font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+  #stage.grabbing { cursor: grabbing; }
+
+  header {
+    position: fixed; left: 0; right: 0; top: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 18px) 22px 0;
+    pointer-events: none;
+  }
+  h1 { margin: 0; font-weight: 600; font-size: clamp(26px, 6vw, 40px); letter-spacing: -.02em; }
+  header p { margin: 4px 0 0; color: var(--ink-soft); font-size: 15px; }
+
+  #panel {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 0;
+    width: min(560px, calc(100% - 24px));
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    padding: 14px 16px 16px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 26px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 34px var(--shadow);
+    display: grid; gap: 12px;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .swatches { display: flex; gap: 8px; }
+  .sw {
+    width: 30px; height: 30px; border-radius: 11px; border: 2px solid transparent; padding: 0; cursor: pointer;
+    box-shadow: inset 0 -6px 10px rgba(0,0,0,.14), inset 0 4px 8px rgba(255,255,255,.55);
+  }
+  .sw[aria-pressed="true"] { border-color: var(--ink); transform: scale(1.1); }
+  .seg { display: flex; background: rgba(120,110,190,.16); border-radius: 14px; padding: 3px; }
+  .seg button {
+    font: inherit; font-size: 15px; color: var(--ink-soft); background: none; border: 0; padding: 7px 12px; border-radius: 11px; cursor: pointer; white-space: nowrap;
+  }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .iconbtn {
+    font: inherit; font-size: 15px; color: var(--ink); background: rgba(120,110,190,.16); border: 0; border-radius: 14px; padding: 8px 12px; cursor: pointer; white-space: nowrap;
+  }
+  label.sl { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; font-size: 15px; color: var(--ink-soft); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .iconbtn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  #hint {
+    position: fixed; left: 0; right: 0; top: 92px;
+    text-align: center; color: var(--ink-soft); font-size: 15px; pointer-events: none;
+    transition: opacity .6s; opacity: 0;
+  }
+  @media (max-height: 640px) { header .sub { display: none; } }
+  @media (prefers-reduced-motion: reduce) { #hint { transition: none; } }
+  #cam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: .34; pointer-events: none; }
+  body.novideo #cam { opacity: 0; }
+  #status { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--accent); min-height: 1.45em; }
+  #intro {
+    position: fixed; inset: 0; display: grid; place-items: center; padding: 20px;
+    background: rgba(30,20,70,.18); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 5;
+  }
+  #intro .card {
+    width: min(430px, 100%); background: var(--panel); border: 1px solid var(--panel-edge);
+    border-radius: 28px; padding: 24px 22px 20px; box-shadow: 0 16px 50px var(--shadow);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  #intro h2 { margin: 0 0 6px; font-weight: 400; font-size: 28px; }
+  #intro p { margin: 0 0 10px; color: var(--ink-soft); font-size: 16px; line-height: 1.5; }
+  #intro ul { margin: 0 0 16px; padding-left: 20px; font-size: 16px; line-height: 1.7; }
+  #intro .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  #intro small { display: block; margin-top: 12px; color: var(--ink-soft); font-size: 13px; line-height: 1.45; }
+  .primary { font: inherit; font-size: 17px; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 12px 18px; cursor: pointer; }
+  .ghost { font: inherit; font-size: 17px; color: var(--ink); background: rgba(120,110,190,.18); border: 0; border-radius: 16px; padding: 12px 18px; cursor: pointer; }
+  #panel[hidden], #intro[hidden], #settingsBtn[hidden] { display: none; }
+  #settingsBtn { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 4; background: var(--panel); border: 1px solid var(--panel-edge); box-shadow: 0 6px 20px var(--shadow); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  #panel { z-index: 6; }
+  #hud { position: fixed; left: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 4; max-width: min(380px, calc(100vw - 110px));
+    display: grid; gap: 6px; pointer-events: none; }
+  #hud[hidden] { display: none; }
+  .hud-hand { background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 14px; padding: 8px 10px; box-shadow: 0 6px 20px var(--shadow);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-size: 14px; line-height: 1.4; }
+  .hud-hand .who { color: var(--ink-soft); font-size: 12px; }
+  .hud-hand .st { font-weight: 600; }
+  .hud-hand .tip { color: var(--ink-soft); font-size: 12.5px; }
+  .hud-bar { display: grid; grid-template-columns: 64px 1fr; gap: 6px; align-items: center; font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+  .hud-bar i { display: block; height: 6px; border-radius: 3px; background: rgba(120,110,190,.2); overflow: hidden; }
+  .hud-bar i b { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  #guide { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 16px; background: rgba(30,20,70,.25); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  #guide[hidden] { display: none; }
+  #guide .card { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--panel-solid); border: 1px solid var(--panel-edge); border-radius: 24px; padding: 20px 20px 16px; box-shadow: 0 16px 50px var(--shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+  #guide h2 { margin: 0 0 10px; font-size: 22px; font-weight: 600; }
+  .g-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .g-list li { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: start; }
+  .g-ic { font-size: 28px; line-height: 1; text-align: center; }
+  .g-list p { margin: 3px 0 2px; font-size: 14.5px; line-height: 1.5; color: var(--ink); }
+  .g-list small { color: var(--ink-soft); font-size: 12.5px; }
+  .g-tip { margin: 14px 0 12px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; }
+  #guide .btns { display: flex; justify-content: flex-end; }
+  #dev { position: fixed; left: 10px; top: 10px; width: min(360px, calc(100vw - 20px)); max-height: calc(100vh - 20px); overflow: auto; z-index: 8;
+    background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 18px; padding: 10px 12px 14px; box-shadow: 0 10px 34px var(--shadow);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); font-size: 12.5px; color: var(--ink); }
+  #dev[hidden] { display: none; }
+  .dv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 14px; }
+  .dv-sec { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--panel-edge); }
+  .dv-sec h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .dv-flag { margin: 0 0 10px; padding: 8px 8px 4px; border-radius: 12px; background: rgba(120,110,190,.10); }
+  .dv-check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .dv-desc { color: var(--ink-soft); font-size: 12px; line-height: 1.4; margin: 3px 0 6px; }
+  .dv-row { display: grid; grid-template-columns: 1fr 1.2fr 42px; gap: 6px; align-items: center; margin: 2px 0; }
+  .dv-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  .dv-pre { margin: 4px 0; padding: 8px; border-radius: 10px; background: rgba(0,0,0,.06); font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; }
+  .dv-chart { width: 100%; height: 96px; background: rgba(0,0,0,.05); border-radius: 10px; display: block; }
+  .dv-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .dv-btns button { font: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+</style>
+</head>
+<body class="novideo">
+<video id="cam" autoplay playsinline muted></video>
+<canvas id="stage" aria-label="공중에 떠 있는 3D 말랑이 큐브"></canvas>
+<canvas id="hand2d" aria-hidden="true" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+
+<header>
+  <h1>공중 말랑이</h1>
+  <p class="sub">손가락으로 찌르고, 엄지·검지로 집어 늘려 보세요</p>
+  <p id="status" role="status" aria-live="polite"></p>
+</header>
+
+<div id="intro">
+  <div class="card">
+    <h2>공중 말랑이</h2>
+    <p>허공에 떠 있는 말랑이를 손으로 직접 만져 보는 시뮬레이터예요.</p>
+    <ul>
+      <li>손가락으로 콕콕, 손바닥으로 꾹 눌러요</li>
+      <li>엄지와 검지로 집어서 당겨요</li>
+      <li>두 손으로 양쪽을 잡아 늘려요</li>
+    </ul>
+    <div class="btns">
+      <button id="btnCam" class="primary">카메라로 시작</button>
+      <button id="btnDemo" class="ghost">데모 보기</button>
+      <button id="btnMouse" class="ghost">마우스·트랙패드로</button>
+      <button id="btnGuide" class="ghost">손동작 안내</button>
+    </div>
+    <p id="introMsg" role="alert" style="margin:14px 0 0;color:var(--accent);font-size:15px;line-height:1.5;min-height:1.4em"></p>
+    <small>카메라 영상은 이 기기 안에서만 처리되고 서버로 보내지지 않아요. 손 인식 모델(MediaPipe Hand Landmarker)만 Hugging Face에서 내려받아요.</small>
+  </div>
+</div>
+
+<button id="settingsBtn" class="iconbtn" hidden aria-expanded="false" aria-controls="panel">설정</button>
+<div id="panel" hidden>
+  <div class="row">
+    <div class="swatches" id="swatches" role="group" aria-label="색상"></div>
+    <button id="glassBtn" class="iconbtn" aria-label="질감 바꾸기">질감: 젤리</button>
+    <button id="glitter" class="iconbtn" aria-pressed="false">반짝이 끔</button>
+    <button id="mute" class="iconbtn" aria-label="소리 종류 바꾸기">소리: 질척</button>
+  </div>
+  <div class="row">
+    <button id="calib" class="iconbtn">기준 다시 잡기</button>
+    <button id="guideBtn" class="iconbtn">손동작 안내</button>
+    <button id="devBtn" class="iconbtn" aria-pressed="false">개발자 모드</button>
+    <button id="handStyleBtn" class="iconbtn">손: 실제 손</button>
+    <button id="camToggle" class="iconbtn" aria-pressed="false">내 영상 숨김</button>
+    <button id="backIntro" class="iconbtn">처음으로</button>
+  </div>
+  <label class="sl">쫀득함
+    <input id="recover" type="range" min="0.8" max="9" step="0.1" value="1.7" aria-label="복원 속도. 왼쪽일수록 천천히 돌아옴">
+  </label>
+  <label class="sl">깊이 민감도
+    <input id="gain" type="range" min="4" max="16" step="0.5" value="9" aria-label="손을 앞뒤로 움직였을 때 반응하는 정도">
+  </label>
+</div>
+
+<div id="hud" hidden aria-live="polite"></div>
+
+<div id="guide" hidden role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+  <div class="card">
+    <h2 id="guideTitle">손동작 안내</h2>
+    <ol class="g-list">
+      <li><span class="g-ic" aria-hidden="true">👆</span><div><b>손가락으로 찌르기</b>
+        <p>손가락 끝이 큐브 표면에 닿으면 그 자리가 들어가요. <b>손을 화면(카메라) 쪽으로 뻗을수록</b> 깊이 눌려요.</p>
+        <small>닿은 손가락 끝이 붉게 빛나요</small></div></li>
+      <li><span class="g-ic" aria-hidden="true">✋</span><div><b>손바닥으로 누르기</b>
+        <p>손가락을 펴고 손바닥째 큐브 쪽으로 밀면 넓게 꾹 눌려요.</p></div></li>
+      <li><span class="g-ic" aria-hidden="true">🤏</span><div><b>집어서 당기기</b>
+        <p>큐브 <b>가장자리 가까이</b>에서 <b>엄지와 검지 끝을 붙이면</b> 집혀요. 붙인 채로 손을 움직이면 늘어나고, <b>손가락을 벌리면</b> 놓여요.</p>
+        <small>너무 멀리 당기면 손가락에서 미끄러져 빠져요</small></div></li>
+      <li><span class="g-ic" aria-hidden="true">🙌</span><div><b>두 손으로 늘리기</b>
+        <p>양손으로 양쪽 가장자리를 각각 집은 뒤 벌려요.</p></div></li>
+      <li><span class="g-ic" aria-hidden="true">🖱️</span><div><b>마우스·트랙패드로 하기</b>
+        <p>시작 화면의 '마우스·트랙패드로'를 누르면 카메라 없이 쓸 수 있어요. <b>클릭한 채로 두면</b> 눌리고, <b>클릭한 채 끌면</b> 늘어나요. 트랙패드에서 <b>두 손가락을 벌리면</b> 양쪽으로 늘어나고, 모으면 눌려요.</p></div></li>
+      <li><span class="g-ic" aria-hidden="true">📏</span><div><b>앞뒤 거리 기준</b>
+        <p>카메라를 켜고 <b>처음 손을 보여 준 거리</b>가 '큐브 바로 앞'이 돼요. 거기서 화면 쪽으로 손을 뻗으면 닿아요.</p>
+        <small>잘 안 닿거나 너무 쉽게 닿으면 설정 → 기준 다시 잡기</small></div></li>
+    </ol>
+    <p class="g-tip">손 전체가 화면에 들어오게 하고, 손바닥이나 손등이 카메라를 향하게 하면 인식이 잘 돼요. 화면 왼쪽 아래에 지금 인식된 손동작이 표시돼요.</p>
+    <div class="btns"><button id="guideClose" class="primary">알겠어요</button></div>
+  </div>
+</div>
+
+<div id="dev" hidden>
+  <div class="dv-head"><b>개발자 모드</b><button id="devClose" class="iconbtn">닫기</button></div>
+  <div id="devBody"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (typeof THREE === "undefined") {
+    document.getElementById("introMsg").textContent = "3D 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.";
+    return;
+  }
+  window.addEventListener("error", function (e) {
+    var m = document.getElementById("introMsg");
+    if (m && !m.textContent) m.textContent = "오류가 났어요: " + (e.message || "알 수 없음");
+  });
+  /* ---------- 기본 설정 ---------- */
+  var canvas = document.getElementById("stage");
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.NoToneMapping;
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(36, 1, 0.1, 50);
+  camera.position.set(0, 0, 3.7);
+  camera.lookAt(0, 0, 0);
+
+  /* ---------- 환경맵 (소프트박스 느낌의 하이라이트) ---------- */
+  (function makeEnv() {
+    var c = document.createElement("canvas");
+    c.width = 512; c.height = 256;
+    var g = c.getContext("2d");
+    var grad = g.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, "#9fb0ff");
+    grad.addColorStop(0.5, "#4a4478");
+    grad.addColorStop(1, "#1d1a3a");
+    g.fillStyle = grad; g.fillRect(0, 0, 512, 256);
+    g.fillStyle = "rgba(255,255,255,0.95)";
+    g.fillRect(50, 36, 110, 70);
+    g.fillRect(290, 28, 150, 50);
+    g.fillRect(200, 150, 40, 30);
+    g.fillStyle = "rgba(255,240,250,0.6)";
+    g.fillRect(190, 120, 60, 40);
+    var tex = new THREE.CanvasTexture(c);
+    tex.encoding = THREE.sRGBEncoding;
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    var pm = new THREE.PMREMGenerator(renderer);
+    scene.environment = pm.fromEquirectangular(tex).texture;
+    pm.dispose();
+  })();
+
+  var key = new THREE.DirectionalLight(0xffffff, 0.6);
+  key.position.set(2.5, 4, 3);
+  scene.add(key);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9a8fd0, 0.3));
+
+  /* ---------- 둥근 큐브 지오메트리 ---------- */
+  var SEG = 30, HALF = 0.5, R = 0.22;
+  var geo = new THREE.BoxGeometry(1, 1, 1, SEG, SEG, SEG);
+  var pos = geo.attributes.position;
+  var N = pos.count;
+  var rest = new Float32Array(N * 3);
+  var restN = new Float32Array(N * 3);
+
+  (function roundCube() {
+    var inner = HALF - R, v = new THREE.Vector3(), c = new THREE.Vector3(), d = new THREE.Vector3();
+    for (var i = 0; i < N; i++) {
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+      c.set(
+        Math.max(-inner, Math.min(inner, v.x)),
+        Math.max(-inner, Math.min(inner, v.y)),
+        Math.max(-inner, Math.min(inner, v.z))
+      );
+      d.copy(v).sub(c);
+      if (d.lengthSq() < 1e-12) { d.copy(v).normalize(); }
+      d.normalize();
+      v.copy(c).addScaledVector(d, R);
+      // 구에 살짝 가깝게 (젤리처럼 통통하게)
+      var rl = v.length();
+      v.multiplyScalar(1 - 0.1 + 0.1 * (0.6 / rl));
+      // 아래쪽이 자중으로 살짝 퍼진 느낌
+      var sag = 1 + 0.07 * (0.5 - v.y);
+      v.x *= sag; v.z *= sag;
+      // 완벽한 큐브가 아닌 미세한 울퉁불퉁함
+      var lump = 0.014 * Math.sin(v.x * 7.0 + v.y * 3.0) * Math.cos(v.z * 6.0 + v.x * 2.0)
+               + 0.01 * Math.sin(v.y * 9.0 + v.z * 5.0);
+      v.addScaledVector(d, lump);
+      pos.setXYZ(i, v.x, v.y, v.z);
+      rest[i * 3] = v.x; rest[i * 3 + 1] = v.y; rest[i * 3 + 2] = v.z;
+      restN[i * 3] = d.x; restN[i * 3 + 1] = d.y; restN[i * 3 + 2] = d.z;
+    }
+  })();
+
+  geo.setAttribute("aRest", new THREE.BufferAttribute(rest, 3));
+
+  // 면 경계에서 겹치는 점을 하나로 묶어, 눌렸을 때 이음새가 보이지 않게 법선을 직접 계산
+  var weld = new Int32Array(N);
+  var weldCount = 0;
+  (function buildWeld() {
+    var map = {};
+    for (var i = 0; i < N; i++) {
+      var k = Math.round(rest[i * 3] * 5000) + "_" + Math.round(rest[i * 3 + 1] * 5000) + "_" + Math.round(rest[i * 3 + 2] * 5000);
+      if (map[k] === undefined) map[k] = weldCount++;
+      weld[i] = map[k];
+    }
+  })();
+  var idx = geo.index.array;
+  var nrm = geo.attributes.normal;
+  var accum = new Float32Array(weldCount * 3);
+
+  function recomputeNormals() {
+    accum.fill(0);
+    var p = pos.array;
+    for (var t = 0; t < idx.length; t += 3) {
+      var a = idx[t], b = idx[t + 1], c = idx[t + 2];
+      var ax = p[a * 3], ay = p[a * 3 + 1], az = p[a * 3 + 2];
+      var e1x = p[b * 3] - ax, e1y = p[b * 3 + 1] - ay, e1z = p[b * 3 + 2] - az;
+      var e2x = p[c * 3] - ax, e2y = p[c * 3 + 1] - ay, e2z = p[c * 3 + 2] - az;
+      var nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x;
+      var wa = weld[a] * 3, wb = weld[b] * 3, wc = weld[c] * 3;
+      accum[wa] += nx; accum[wa + 1] += ny; accum[wa + 2] += nz;
+      accum[wb] += nx; accum[wb + 1] += ny; accum[wb + 2] += nz;
+      accum[wc] += nx; accum[wc + 1] += ny; accum[wc + 2] += nz;
+    }
+    var n = nrm.array;
+    for (var i = 0; i < N; i++) {
+      var w = weld[i] * 3;
+      var x = accum[w], y = accum[w + 1], z = accum[w + 2];
+      var l = Math.sqrt(x * x + y * y + z * z) || 1;
+      n[i * 3] = x / l; n[i * 3 + 1] = y / l; n[i * 3 + 2] = z / l;
+    }
+    nrm.needsUpdate = true;
+  }
+
+  /* ---------- 재질 ---------- */
+  var COLORS = [
+    { name: "블루", hex: "#4aa8ff" },
+    { name: "쿨핑크", hex: "#fb6cc2" },
+    { name: "라임", hex: "#9be04a" },
+    { name: "오렌지", hex: "#ff9d3d" },
+    { name: "퍼플", hex: "#9b6bff" },
+    { name: "민트", hex: "#3fd9b5" }
+  ];
+  function backColor(hex) { return new THREE.Color(hex).offsetHSL(0, 0.18, -0.06); }
+
+  var NOISE_GLSL = [
+    "varying vec3 vRest;",
+    "varying float vPress;",
+    "uniform float uShade;",
+    "uniform float uGlitter;",
+    "uniform float uGlass;",
+    "uniform float uPudding;",
+    "uniform float uTime;",
+    "float hash3(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }",
+    "float vnoise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);",
+    " return mix(mix(mix(hash3(i), hash3(i+vec3(1,0,0)), f.x), mix(hash3(i+vec3(0,1,0)), hash3(i+vec3(1,1,0)), f.x), f.y),",
+    "            mix(mix(hash3(i+vec3(0,0,1)), hash3(i+vec3(1,0,1)), f.x), mix(hash3(i+vec3(0,1,1)), hash3(i+vec3(1,1,1)), f.x), f.y), f.z); }",
+    // 반짝이 조각: 작은 격자 칸마다 무작위 방향의 조각이 있고, 보는 각도와 시간에 따라 반짝임
+    "vec3 flakes3(vec3 pr, vec3 vdir, float scale, float thr, float t, float far){",
+    // 반짝이: 평소엔 은은한 금속 조각, 빛 각도가 맞는 순간 강하게 번쩍이며 십자 빛줄기가 생김
+    "  vec3 a = abs(pr); vec2 uv; float ax;",
+    "  if (a.x >= a.y && a.x >= a.z) { uv = pr.yz; ax = 0.0; } else if (a.y >= a.z) { uv = pr.xz; ax = 1.0; } else { uv = pr.xy; ax = 2.0; }",
+    "  vec2 gp = uv * scale; vec2 gi = floor(gp); vec2 gf = fract(gp) - 0.5;",
+    "  vec3 hs = vec3(gi, ax);",
+    "  float h = hash3(hs); if (h < thr) return vec3(0.0);",
+    "  gf -= (vec2(hash3(hs + 7.7), hash3(hs + 8.8)) - 0.5) * 0.3;",
+    "  float ang = hash3(hs + 3.1) * 6.2832; float ca = cos(ang), sa = sin(ang);",
+    "  vec2 q = vec2(ca * gf.x - sa * gf.y, sa * gf.x + ca * gf.y);",
+    "  float hexd = max(abs(q.y), abs(q.x) * 0.866 + abs(q.y) * 0.5);",
+    "  float body = 1.0 - smoothstep(0.12 - 0.02 * far, 0.15 + 0.05 * far, hexd);",
+    "  vec3 fn = normalize(vec3(hash3(hs + 1.7), hash3(hs + 5.3), hash3(hs + 9.1)) - 0.5 + vec3(0.0001));",
+    "  vec3 Lh = normalize(normalize(vec3(0.4, 0.75, 0.55)) + vdir);",
+    "  float spec = pow(abs(dot(fn, Lh)), 48.0);",
+    "  float tw = pow(0.5 + 0.5 * sin(t * 2.6 + h * 70.0), 6.0);",
+    "  float flash = clamp(spec + tw * 0.85, 0.0, 1.6);",
+    "  vec3 iri = 0.62 + 0.38 * cos(6.2832 * (h * 3.0 + dot(fn, vdir) * 0.8 + vec3(0.0, 0.33, 0.67)));",
+    "  vec3 col = body * (iri * 0.28 + vec3(1.0) * flash * 1.5);",
+    "  float r2 = dot(gf, gf);",
+    "  float glow = exp(-r2 * 60.0) * flash;",
+    "  float cross = (exp(-abs(gf.x) * 45.0) * exp(-abs(gf.y) * 7.0) + exp(-abs(gf.y) * 45.0) * exp(-abs(gf.x) * 7.0)) * flash;",
+    "  return col + mix(vec3(1.0), iri, 0.25) * (glow * 0.7 * (1.0 - 0.4 * far) + cross * 0.85 * (1.0 - 0.85 * far));",
+    "}"
+  ].join("\n");
+  var glassU = { value: 0 }, puddingU = { value: 0 };
+  var glitterU = { value: 0 }, timeU = { value: 0 }, shadeU = { value: 1.0 };
+  function patchVertex(sh) {
+    sh.vertexShader = sh.vertexShader
+      .replace("void main() {", "attribute vec3 aRest;\nattribute float aPress;\nvarying vec3 vRest;\nvarying float vPress;\nvarying vec3 vTX;\nvarying vec3 vTY;\nvoid main() {")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvRest = aRest;\nvPress = aPress;\nvTX = normalize(normalMatrix * vec3(1.0, 0.0, 0.0));\nvTY = normalize(normalMatrix * vec3(0.0, 1.0, 0.0));");
+  }
+
+  /* 안쪽 슬라임: 맑고 선명한 색. 가운데는 빛이 통과해 밝고, 가장자리는 두꺼워서 진함 */
+  var backMat = new THREE.MeshPhysicalMaterial({
+    color: backColor(COLORS[0].hex),
+    roughness: 0.7,
+    metalness: 0,
+    side: THREE.BackSide,
+    transparent: true,
+    opacity: 0.96,
+    depthWrite: false
+  });
+  backMat.onBeforeCompile = function (sh) {
+    sh.uniforms.uGlitter = glitterU;
+    sh.uniforms.uGlass = glassU;
+    sh.uniforms.uPudding = puddingU;
+    sh.uniforms.uShade = shadeU;
+    sh.uniforms.uTime = timeU;
+    patchVertex(sh);
+    var f = sh.fragmentShader.replace("void main() {", NOISE_GLSL + "\nvoid main() {");
+    f = f.replace("#include <color_fragment>",
+      "#include <color_fragment>\n" +
+      "float ndv = clamp(abs(dot(normalize(vNormal), normalize(vViewPosition))), 0.0, 1.0);\n" +
+      "float core = pow(ndv, 1.1);\n" +
+      "float cz = vnoise(vRest * 2.6 + 3.0) * 0.6 + vnoise(vRest * 5.5) * 0.4;\n" +
+      "vec3 baseC = diffuseColor.rgb;\n" +
+      "vec3 deepC = diffuseColor.rgb * 0.36;\n" +
+      "vec3 lightC = diffuseColor.rgb * 1.0;\n" +
+      "diffuseColor.rgb = mix(deepC, lightC, core) * (0.86 + 0.32 * cz);\nfloat edgeG = pow(1.0 - core, 1.6);\nvec3 glassC = mix(baseC * 0.95, baseC * 0.62, edgeG);\ndiffuseColor.rgb = mix(diffuseColor.rgb, glassC, uGlass);\ndiffuseColor.a *= mix(1.0, clamp(0.2 + 0.55 * edgeG, 0.0, 1.0), uGlass);\ndiffuseColor.rgb = mix(diffuseColor.rgb, mix(baseC, vec3(1.0), 0.12) * (0.8 + 0.28 * core), uPudding);\ndiffuseColor.a = mix(diffuseColor.a, 0.97, uPudding);\n" +
+      "diffuseColor.rgb *= 1.0 - uShade * 0.4 * max(vPress, 0.0);");
+    f = f.replace("#include <emissivemap_fragment>",
+      "#include <emissivemap_fragment>\n" +
+      "totalEmissiveRadiance = diffuseColor.rgb * 0.62; diffuseColor.rgb *= 0.3;\n" +
+      "vec3 vd = normalize(vViewPosition);\n" +
+      "vec3 fl3 = flakes3(vRest, vd, 30.0, 0.86, uTime, 1.0) * mix(vec3(1.0), diffuse, 0.65) * 0.4;\n" +
+      "totalEmissiveRadiance += fl3 * uGlitter * 2.2;\n" +
+      "diffuseColor.a = max(diffuseColor.a, min(1.0, max(fl3.r, max(fl3.g, fl3.b)) * uGlitter));");
+    sh.fragmentShader = f;
+  };
+
+  /* 바깥 껍데기: 거의 투명한 색 있는 막 + 선명한 반사광 + (한 면에) 양각/음각 글씨 */
+  var frontTint = { value: new THREE.Color(COLORS[0].hex) };
+  var embossU = { value: 1 };
+
+  var logoCanvas = document.createElement("canvas");
+  logoCanvas.width = logoCanvas.height = 512;
+  var logoTex = new THREE.CanvasTexture(logoCanvas);
+  logoTex.anisotropy = 4;
+  var logoText = "NICE CUBE";
+  function drawLogo() {
+    var g = logoCanvas.getContext("2d");
+    g.fillStyle = "#000"; g.fillRect(0, 0, 512, 512);
+    var words = logoText.trim().toUpperCase().split(/\s+/).filter(Boolean);
+    var lines = words.length >= 2 ? [words[0], words.slice(1).join(" ")] : words;
+    if (!lines.length) { logoTex.needsUpdate = true; return; }
+    var size = 190, fam = "'Outfit', 'IBM Plex Sans KR', 'Apple SD Gothic Neo', sans-serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    // 가장 긴 줄이 면 폭의 약 62%에 들어오도록 글자 크기 조절
+    for (; size > 40; size -= 6) {
+      g.font = "700 " + size + "px " + fam;
+      if ("letterSpacing" in g) g.letterSpacing = Math.round(size * 0.06) + "px";
+      var wmax = 0;
+      lines.forEach(function (l) { wmax = Math.max(wmax, g.measureText(l).width); });
+      if (wmax < 330 && size * lines.length * 0.95 < 300) break;
+    }
+    g.save();
+    g.translate(256, 262); g.rotate(-0.08);
+    g.fillStyle = "#fff"; g.shadowColor = "#fff"; g.shadowBlur = 12;
+    var lh = size * 0.95, y0 = -lh * (lines.length - 1) / 2;
+    lines.forEach(function (l, i) { g.fillText(l, 0, y0 + i * lh); });
+    g.restore();
+    logoTex.needsUpdate = true;
+  }
+  drawLogo();
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load("700 120px 'Outfit'").then(drawLogo).catch(function () {});
+  }
+
+  var mat = new THREE.MeshPhysicalMaterial({
+    color: 0x000000,
+    roughness: 0.16,
+    metalness: 0,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.15,
+    envMapIntensity: 0.5,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.CustomBlending,
+    blendSrc: THREE.OneFactor,
+    blendDst: THREE.OneMinusSrcAlphaFactor
+  });
+  mat.onBeforeCompile = function (sh) {
+    sh.uniforms.uTint = frontTint;
+    sh.uniforms.uGlitter = glitterU;
+    sh.uniforms.uGlass = glassU;
+    sh.uniforms.uPudding = puddingU;
+    sh.uniforms.uShade = shadeU;
+    sh.uniforms.uTime = timeU;
+    sh.uniforms.uLogo = { value: logoTex };
+    sh.uniforms.uEmboss = embossU;
+    patchVertex(sh);
+    var f = sh.fragmentShader.replace("void main() {",
+      NOISE_GLSL + "\nuniform vec3 uTint;\nuniform sampler2D uLogo;\nuniform float uEmboss;\nvarying vec3 vTX;\nvarying vec3 vTY;\nfloat gLogo;\nvoid main() {");
+    // +z 면에만 글씨: 표면 높이(글씨 밝기)의 기울기로 법선을 살짝 꺾어 입체감을 만듦
+    f = f.replace("#include <normal_fragment_maps>",
+      "#include <normal_fragment_maps>\n" +
+      "vec2 luv = vRest.xy + 0.5;\n" +
+      "float lmask = smoothstep(0.30, 0.42, vRest.z) * (1.0 - smoothstep(0.36, 0.44, max(abs(vRest.x), abs(vRest.y))));\n" +
+      "float le = 0.0035;\n" +
+      "float lh0 = texture2D(uLogo, luv).r;\n" +
+      "float lhx = texture2D(uLogo, luv + vec2(le, 0.0)).r - texture2D(uLogo, luv - vec2(le, 0.0)).r;\n" +
+      "float lhy = texture2D(uLogo, luv + vec2(0.0, le)).r - texture2D(uLogo, luv - vec2(0.0, le)).r;\n" +
+      "normal = normalize(normal - uEmboss * lmask * 2.2 * (lhx * vTX + lhy * vTY));\n" +
+      "gLogo = lh0 * lmask * abs(uEmboss);");
+    f = f.replace("#include <dithering_fragment>",
+      "#include <dithering_fragment>\n" +
+      "vec3 vd = normalize(vViewPosition);\n" +
+      "float fr = 1.0 - clamp(abs(dot(normalize(vNormal), vd)), 0.0, 1.0);\n" +
+      "float a = 0.1 + 0.5 * pow(fr, 2.0) + 0.08 * gLogo + 0.3 * uShade * max(vPress, 0.0);\n" +
+      "a = mix(a, 0.08 + 0.45 * pow(fr, 2.5) + 0.1 * gLogo, uGlass);\n" +
+      "a = mix(a, 0.14 + 0.4 * pow(fr, 2.0) + 0.08 * gLogo, uPudding);\n" +
+      "vec3 sf3 = flakes3(vRest + 0.017, vd, 30.0, 0.9, uTime + 3.0, 0.0) * uGlitter;\n" +
+      "float sfa = min(1.0, max(sf3.r, max(sf3.g, sf3.b)));\n" +
+      "gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - 0.3 * uGlass);\n" +
+      "gl_FragColor = vec4(gl_FragColor.rgb * (1.0 - 0.35 * uShade * max(vPress, 0.0)) + uTint * a * 0.9 + uTint * 0.2 * uShade * max(-vPress, 0.0) + sf3 * 1.2, max(a, sfa));");
+    sh.fragmentShader = f;
+  };
+  var mesh = new THREE.Mesh(geo, mat);
+  var backMesh = new THREE.Mesh(geo, backMat);
+  backMesh.renderOrder = 1;
+  mesh.renderOrder = 2;
+  mesh.add(backMesh);
+  mesh.rotation.set(0, 0.3, 0);
+  scene.add(mesh);
+
+  /* ---------- 점탄성 시뮬레이션 ---------- */
+  var pressArr = new Float32Array(N);
+  geo.setAttribute("aPress", new THREE.BufferAttribute(pressArr, 1));
+  var disp = new Float32Array(N * 3), vel = new Float32Array(N * 3), tgt = new Float32Array(N * 3);
+  /* ---------- 개선 항목(A1~A4) 스위치와 조절값 ---------- */
+  var FLAGS = { a1: true, a2: true, a3: true, a4: true, vol: true };
+  var TUNE = {
+    a1Rate: 4.0,      // A1: 눌림 깊이가 1초에 변할 수 있는 최대량
+    a1Enter: 0.01,    // A1: 이만큼 파고들어야 '닿음'으로 인정
+    a1Exit: 0.03,     // A1: 이만큼 물러나야 '떨어짐'으로 인정
+    a1Cut: 1.5,       // A1: 깊이 필터 강도(낮을수록 부드럽지만 느림)
+    a1Beta: 0.4,      // A1: 빠르게 움직일 때 필터를 푸는 정도(낮을수록 떨림을 더 걸러냄)
+    a2Gain: 0.75,     // A2: 손 이동 대비 눌림 비율(1보다 작으면 뻑뻑하게 느껴짐)
+    a2Sat: 0.6,       // A2: 눌림 한계 깊이
+    a3Dimple: 0.35,   // A3: 손가락 끝 보조개 깊이
+    a3Shade: 1.0,     // A3: 눌린 자리 그림자 세기
+    a4Over: 0.6,      // A4: 놓았을 때 되튕김(0=없음, 1=많이)
+    a4Tone: 1.0       // A4: 늘어남 소리 높낮이 변화
+  };
+  var curDt = 1 / 60, simTime = 0;
+  var strainFrame = 0, strainNow = 0, strainPrev = 0, snapUntil = 0;
+  var devStats = { cs: {}, pops: 0 };
+  var DEV = { on: false, noise: 0, testNoise: 0.03, rec: false, frames: [], cur: null, t0: 0, playing: false, pt: 0, pi: 0, rdata: null, chart: [] };
+  var gaussFn = function () { var u = 1 - Math.random(), v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2832 * v); };
+  function injectNoise(H) {     // 개발자 모드: 추적 떨림을 일부러 만들어 테스트
+    var sg = DEV.noise;
+    if (!(sg > 0)) return;
+    var common = gaussFn() * sg * 0.7;
+    for (var k = 0; k < 21; k++) H.pts[k].z += common + gaussFn() * sg * 0.7;
+  }
+  var params = { recover: 1.7, gain: 9 };
+  var OMEGA_IN = 7;
+  var energy = 0, speed = 0, contactActive = false;
+
+  function step(dt) {
+    // 임계감쇠 스프링: 튀지 않고 수렴. 손이 닿아 있을 땐 빠르게 따라가고, 떨어지면 천천히 복원
+    var w = contactActive ? OMEGA_IN : params.recover, zeta = 1;
+    if (FLAGS.a4 && !contactActive && simTime < snapUntil) { zeta = 1 - 0.65 * TUNE.a4Over; w = Math.max(params.recover * 1.8, 3.2); }   // A4: 늘렸다 놓으면 탄성 있게 되튕김
+    if (puddingU.value === 1) { zeta = contactActive ? 0.35 : 0.12; w = contactActive ? 12 : 9; }   // 푸딩: 출렁이며 돌아옴
+    var sub = 2, h = dt / sub, i, s;
+    for (s = 0; s < sub; s++) {
+      for (i = 0; i < N * 3; i++) {
+        var a = w * w * (tgt[i] - disp[i]) - 2 * zeta * w * vel[i];
+        vel[i] += a * h;
+        disp[i] += vel[i] * h;
+      }
+    }
+    var e = 0, sp = 0;
+    for (i = 0; i < N * 3; i += 3) e += Math.abs(disp[i]) + Math.abs(disp[i + 1]) + Math.abs(disp[i + 2]);
+    for (i = 0; i < N * 3; i++) sp += Math.abs(vel[i]);
+    energy = e / N;
+    speed = sp / (N * 3);
+  }
+  function applyToGeometry() {
+    var p = pos.array;
+    for (var i = 0; i < N * 3; i++) p[i] = rest[i] + disp[i];
+    applyWobble(p, false);
+    if (FLAGS.a3) {
+      for (var q = 0; q < N; q++) pressArr[q] = clamp(-(disp[q * 3] * restN[q * 3] + disp[q * 3 + 1] * restN[q * 3 + 1] + disp[q * 3 + 2] * restN[q * 3 + 2]) / 0.4, -1, 1);
+    } else pressArr.fill(0);
+    geo.attributes.aPress.needsUpdate = true;
+    shadeU.value = FLAGS.a3 ? TUNE.a3Shade : 0;
+    pos.needsUpdate = true;
+    recomputeNormals();
+    geo.computeBoundingSphere();
+    geo.computeBoundingBox();
+  }
+
+  // 한 접촉점(손가락 끝·손바닥)이 표면을 누르는 효과를 목표 변위에 더함
+  function accumulateContact(c) {
+    var depth = c.depth, Rr = 0.12 + 1.9 * c.r;
+    var nx = c.n.x, ny = c.n.y, nz = c.n.z, cx = c.cp.x, cy = c.cp.y, cz = c.cp.z;
+    var h0 = cx * nx + cy * ny + cz * nz - depth;               // 판(손가락)이 닿은 높이
+    var gw = Math.max(0, Math.min(1, (c.r - 0.05) / 0.12));      // 손바닥일수록 전체가 눌림
+    var cut = 9 * Rr * Rr;
+    for (var i = 0; i < N; i++) {
+      var rx = rest[i * 3], ry = rest[i * 3 + 1], rz = rest[i * 3 + 2];
+      var ex = rx - cx, ey = ry - cy, ez = rz - cz;
+      var e2 = ex * ex + ey * ey + ez * ez;
+      if (e2 > cut && gw === 0) continue;
+      var al = ex * nx + ey * ny + ez * nz;
+      var perp2 = Math.max(0, e2 - al * al);
+      var f = Math.exp(-perp2 / (Rr * Rr));
+      var sOut = rx * nx + ry * ny + rz * nz;
+      var excess = sOut - h0;
+      var push = excess > 0 ? excess * f : 0;
+      var d2 = e2 / (Rr * Rr);
+      var bulge = depth * 0.34 * Math.max(0, Math.exp(-d2 / 4.8) - Math.exp(-d2 / 1.2));
+      var dimple = (FLAGS.a3 && c.tip) ? depth * TUNE.a3Dimple * Math.exp(-perp2 / (0.2 * Rr * Rr)) : 0;   // A3: 손가락 끝 보조개
+      var sdown = push + dimple + depth * 0.26 * gw * (sOut + 0.5);
+      var spread = depth * 0.2 * gw;
+      var px = rx - sOut * nx, py = ry - sOut * ny, pz = rz - sOut * nz;
+      tgt[i * 3]     += -nx * sdown + restN[i * 3]     * bulge + px * spread;
+      tgt[i * 3 + 1] += -ny * sdown + restN[i * 3 + 1] * bulge + py * spread;
+      tgt[i * 3 + 2] += -nz * sdown + restN[i * 3 + 2] * bulge + pz * spread;
+    }
+  }
+  // 집어서 당기는 효과: 잡은 쪽 몸 전체가 매끈하게 늘어나고, 옆은 가늘어짐(부피 보존). 멀리 당길수록 점점 뻑뻑해짐
+  function accumulatePull(g) {
+    var v = g.vec, L = v.length();
+    if (L < 1e-5) return;
+    var Lmax = 1.0, Ls = Lmax * Math.tanh(L / Lmax), k = Ls / L;
+    if (Ls > strainFrame) strainFrame = Ls;      // 부드러운 한계(고무줄처럼 저항)
+    var vx = v.x * k, vy = v.y * k, vz = v.z * k;
+    var ux = vx / Ls, uy = vy / Ls, uz = vz / Ls;                      // 당기는 방향
+    var cl = Math.sqrt(g.cp.x * g.cp.x + g.cp.y * g.cp.y + g.cp.z * g.cp.z) || 1;
+    var dx = g.cp.x / cl, dy = g.cp.y / cl, dz = g.cp.z / cl;          // 잡은 쪽 방향(중심→잡은 점)
+    var cx = g.cp.x, cy = g.cp.y, cz = g.cp.z;
+    var neck = 0.22 * Ls;
+    var Rp = 0.38 + 0.2 * Ls, Rp2 = Rp * Rp;
+    for (var i = 0; i < N; i++) {
+      var rx = rest[i * 3], ry = rest[i * 3 + 1], rz = rest[i * 3 + 2];
+      var u = Math.max(0, Math.min(1, 0.5 + (rx * dx + ry * dy + rz * dz)));
+      var w = Math.pow(u * u * (3 - 2 * u), 1.2);                     // 잡은 쪽은 1, 반대쪽은 0으로 부드럽게 이어짐
+      var ex = rx - cx, ey = ry - cy, ez = rz - cz;
+      var bump = Math.exp(-(ex * ex + ey * ey + ez * ez) / Rp2);
+      var f = 0.85 * w + 0.3 * bump * (1 - w);
+      var along = rx * ux + ry * uy + rz * uz;
+      var nk = neck * (0.4 + 0.6 * w);
+      pullBuf[i * 3]     += vx * f - (rx - along * ux) * nk;
+      pullBuf[i * 3 + 1] += vy * f - (ry - along * uy) * nk;
+      pullBuf[i * 3 + 2] += vz * f - (rz - along * uz) * nk;
+    }
+  }
+
+  /* ---------- 부피 보존: 눌린 만큼 다른 곳이 부풀어 전체 부피가 그대로 ---------- */
+  var triIdx = geo.index.array, vArea = new Float32Array(N), wBuf = new Float32Array(N), V0 = 0;
+  function volumeWith(off) {
+    var v = 0;
+    for (var t = 0; t < triIdx.length; t += 3) {
+      var a = triIdx[t] * 3, b = triIdx[t + 1] * 3, c = triIdx[t + 2] * 3;
+      var ax = rest[a] + off[a], ay = rest[a + 1] + off[a + 1], az = rest[a + 2] + off[a + 2];
+      var bx = rest[b] + off[b], by = rest[b + 1] + off[b + 1], bz = rest[b + 2] + off[b + 2];
+      var cx = rest[c] + off[c], cy = rest[c + 1] + off[c + 1], cz = rest[c + 2] + off[c + 2];
+      v += ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
+    }
+    return v / 6;
+  }
+  (function initVolume() {
+    for (var t = 0; t < triIdx.length; t += 3) {
+      var a = triIdx[t], b = triIdx[t + 1], c = triIdx[t + 2];
+      var e1x = rest[b * 3] - rest[a * 3], e1y = rest[b * 3 + 1] - rest[a * 3 + 1], e1z = rest[b * 3 + 2] - rest[a * 3 + 2];
+      var e2x = rest[c * 3] - rest[a * 3], e2y = rest[c * 3 + 1] - rest[a * 3 + 1], e2z = rest[c * 3 + 2] - rest[a * 3 + 2];
+      var cxp = e1y * e2z - e1z * e2y, cyp = e1z * e2x - e1x * e2z, czp = e1x * e2y - e1y * e2x;
+      var area = 0.5 * Math.sqrt(cxp * cxp + cyp * cyp + czp * czp) / 3;
+      vArea[a] += area; vArea[b] += area; vArea[c] += area;
+    }
+    V0 = volumeWith(new Float32Array(N * 3));
+  })();
+  // 가중치(wBuf)대로 바깥쪽으로 부풀려 부피 차이를 메움. 한 번 더 반복해 오차를 줄임
+  function fillVolume() {
+    for (var it = 0; it < 2; it++) {
+      var dv = V0 - volumeWith(tgt);
+      if (Math.abs(dv) < 1e-5 * Math.abs(V0)) return;
+      var sum = 0, i;
+      for (i = 0; i < N; i++) sum += vArea[i] * wBuf[i];
+      if (sum < 1e-6) return;
+      var k = Math.max(-0.35, Math.min(0.35, dv / sum * (V0 < 0 ? -1 : 1)));
+      for (i = 0; i < N; i++) {
+        var w = wBuf[i] * k;
+        tgt[i * 3] += restN[i * 3] * w; tgt[i * 3 + 1] += restN[i * 3 + 1] * w; tgt[i * 3 + 2] += restN[i * 3 + 2] * w;
+      }
+    }
+  }
+  function preserveVolume() {
+    if (!FLAGS.vol || (!contacts.length && !grabsList.length)) return;
+    var nc = null, best = 0, i, j;
+    for (j = 0; j < contacts.length; j++) if (contacts[j].depth > best) { best = contacts[j].depth; nc = contacts[j].n; }
+    for (i = 0; i < N; i++) {
+      var rx = rest[i * 3], ry = rest[i * 3 + 1], rz = rest[i * 3 + 2], near = 0;
+      for (j = 0; j < contacts.length; j++) {
+        var c = contacts[j], Rr = 0.12 + 1.9 * c.r, dx = rx - c.cp.x, dy = ry - c.cp.y, dz = rz - c.cp.z;
+        near = Math.max(near, Math.exp(-(dx * dx + dy * dy + dz * dz) / (Rr * Rr)));
+      }
+      var side = nc ? 1 - Math.abs(restN[i * 3] * nc.x + restN[i * 3 + 1] * nc.y + restN[i * 3 + 2] * nc.z) : 1;
+      wBuf[i] = (1 - near) * (0.35 + 0.65 * side);       // 눌린 자리는 그대로, 옆면 위주로 부풂
+    }
+    fillVolume();
+  }
+  function computeTargets() {
+    tgt.fill(0); strainFrame = 0;
+    var i;
+    for (i = 0; i < contacts.length; i++) accumulateContact(contacts[i]);
+    if (grabsList.length) {
+      pullBuf.fill(0);
+      for (i = 0; i < grabsList.length; i++) accumulatePull(grabsList[i]);
+      var mx = 0, my = 0, mz = 0;
+      for (i = 0; i < N * 3; i += 3) { mx += pullBuf[i]; my += pullBuf[i + 1]; mz += pullBuf[i + 2]; }
+      mx = mx / N * 0.9; my = my / N * 0.9; mz = mz / N * 0.9;      // 몸 전체가 끌려가지 않고 제자리에서 늘어나게
+      for (i = 0; i < N * 3; i += 3) { tgt[i] += pullBuf[i] - mx; tgt[i + 1] += pullBuf[i + 1] - my; tgt[i + 2] += pullBuf[i + 2] - mz; }
+    }
+    preserveVolume();
+    // 한 점이 너무 멀리 가지 않게 제한
+    for (i = 0; i < N * 3; i += 3) {
+      var l = Math.sqrt(tgt[i] * tgt[i] + tgt[i + 1] * tgt[i + 1] + tgt[i + 2] * tgt[i + 2]);
+      if (l > 1.4) { var k = 1.4 / l; tgt[i] *= k; tgt[i + 1] *= k; tgt[i + 2] *= k; }
+    }
+  }
+
+  /* ---------- 손 ---------- */
+  var contacts = [], grabsList = [];
+  var pullBuf = new Float32Array(N * 3);
+  var hands = [null, null];                 // 슬롯 0/1 (왼손/오른손)
+  var TIPS = [4, 8, 12, 16, 20];
+  var R_TIP = 0.08, R_PALM = 0.2;      // 손 크기를 모를 때의 기본값 (실제로는 손마다 계산)
+  var refSize = 0.27;                       // 큐브 면에 닿는 손 크기 기준
+  var video = document.getElementById("cam");
+  var camOn = false, demoOn = false, landmarker = null, lastVT = -1, autoCal = false, calibAt = 0;
+  var statusEl = document.getElementById("status");
+  var introMsg = document.getElementById("introMsg");
+  function setStatus(t) { statusEl.textContent = t || ""; if (introMsg) introMsg.textContent = t || ""; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  // One Euro 필터: 가만히 있을 땐 떨림을 강하게 줄이고, 빠르게 움직일 땐 지연 없이 따라감
+  function OneEuro(minCut, beta) { this.minCut = minCut; this.beta = beta; this.x = null; this.dx = 0; }
+  function oeAlpha(rate, cut) { var tau = 1 / (2 * Math.PI * cut); return 1 / (1 + tau * rate); }
+  OneEuro.prototype.filter = function (v, dt) {
+    if (this.x === null) { this.x = v; return v; }
+    var rate = 1 / dt, dxr = (v - this.x) * rate;
+    this.dx += oeAlpha(rate, 1.0) * (dxr - this.dx);
+    this.x += oeAlpha(rate, this.minCut + this.beta * Math.abs(this.dx)) * (v - this.x);
+    return this.x;
+  };
+  function newHand(slot) {
+    var pts = [];
+    for (var i = 0; i < 21; i++) pts.push(new THREE.Vector3(0, 0, 99));
+    var fl = []; for (var q = 0; q < 63; q++) fl.push(new OneEuro(1.2, 6));
+    var tp = []; for (var r = 0; r < 21; r++) tp.push(new THREE.Vector3());
+    return { slot: slot, pts: pts, tp: tp, fl: fl, sx: new Float32Array(21), sy: new Float32Array(21), upm: 0, lastT: 0, wx: 0.5, fresh: true, ratio: 1, size: null, pinching: false, grab: null, lastSeen: 0, touch: {}, cs: {} };
+  }
+
+  var _ndc = new THREE.Vector3(), _dir = new THREE.Vector3();
+  function placeOnDepth(sx, sy, zw, out) {
+    _ndc.set(sx * 2 - 1, -(sy * 2 - 1), 0.5).unproject(camera);
+    _dir.copy(_ndc).sub(camera.position).normalize();
+    var s = (zw - camera.position.z) / _dir.z;
+    out.copy(camera.position).addScaledVector(_dir, s);
+  }
+
+  // MediaPipe 결과(영상 좌표 + 미터 단위 월드 좌표) → 화면(거울) → 3D 월드 좌표
+  function ingestLandmarks(lm, wl, slot, now) {
+    var H = hands[slot] || (hands[slot] = newHand(slot));
+    var vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+    var W = window.innerWidth, Hh = window.innerHeight;
+    var sc = Math.max(W / vw, Hh / vh), dw = vw * sc, dh = vh * sc;
+    var dx = (lm[0].x - lm[9].x) * dw, dy = (lm[0].y - lm[9].y) * dh;
+    var size = Math.hypot(dx, dy) / Hh;
+    H.size = H.size == null ? size : H.size * 0.7 + size * 0.3;
+    var zBase = clamp(-(H.size - refSize) * params.gain, -2.2, 2.2);   // 화면 쪽으로 뻗을수록 장면 안쪽으로 들어감
+    var T = H.tp, k;
+    for (k = 0; k < 21; k++) {
+      H.sx[k] = 1 - (lm[k].x * dw - (dw - W) / 2) / W;
+      H.sy[k] = (lm[k].y * dh - (dh - Hh) / 2) / Hh;
+      placeOnDepth(H.sx[k], H.sy[k], zBase, T[k]);
+    }
+    // 손가락 깊이: 이미지 z 대신 미터 단위 3D(월드 랜드마크)를 월드 단위로 환산해서 사용
+    var upm = H.upm || 6.5;
+    if (wl) {
+      var pxy = Math.hypot(wl[0].x - wl[9].x, wl[0].y - wl[9].y);
+      var p3 = Math.hypot(wl[0].x - wl[9].x, wl[0].y - wl[9].y, wl[0].z - wl[9].z);
+      if (p3 > 0 && pxy / p3 > 0.75) {                           // 손바닥이 정면에 가까울 때만 비율 갱신
+        var L2 = Math.hypot(T[0].x - T[9].x, T[0].y - T[9].y), u = L2 / pxy;
+        H.upm = H.upm ? H.upm * 0.8 + u * 0.2 : u; upm = H.upm;
+      }
+    }
+    var dt = clamp(now - (H.lastT || now - 0.033), 0.008, 0.1); H.lastT = now;
+    var zk = (dw / Hh) * params.gain * 0.5, tmp = _tmpV || (_tmpV = new THREE.Vector3());
+    for (k = 0; k < 21; k++) {
+      var z = clamp(zBase + (wl ? wl[k].z * upm : lm[k].z * zk), -2.2, 2.2);
+      placeOnDepth(H.sx[k], H.sy[k], z, tmp);
+      H.pts[k].set(H.fl[k * 3].filter(tmp.x, dt), H.fl[k * 3 + 1].filter(tmp.y, dt), H.fl[k * 3 + 2].filter(tmp.z, dt));
+    }
+    H.fresh = false;
+    injectNoise(H);
+    if (wl) {                                                     // 집기: 실제 거리(미터) 기준이라 손이 기울어도 안정적
+      var p3b = Math.hypot(wl[0].x - wl[9].x, wl[0].y - wl[9].y, wl[0].z - wl[9].z) || 1;
+      H.ratio = Math.hypot(wl[4].x - wl[8].x, wl[4].y - wl[8].y, wl[4].z - wl[8].z) / p3b;
+    } else {
+      H.ratio = Math.hypot((lm[4].x - lm[8].x) * dw, (lm[4].y - lm[8].y) * dh) / (Math.hypot(dx, dy) || 1);
+    }
+    H.wx = H.sx[0];
+    H.lastSeen = now;
+    return H;
+  }
+  var _tmpV = null;
+
+  /* ---------- 접촉 계산 (큐브 로컬 좌표) ---------- */
+  var _L = new THREE.Vector3();
+  function surfaceInfo(pWorld) {
+    mesh.worldToLocal(_L.copy(pWorld));
+    var inner = HALF - R;
+    var cx = clamp(_L.x, -inner, inner), cy = clamp(_L.y, -inner, inner), cz = clamp(_L.z, -inner, inner);
+    var dx = _L.x - cx, dy = _L.y - cy, dz = _L.z - cz;
+    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    var n = new THREE.Vector3(), cp = new THREE.Vector3(), sdf;
+    if (dist > 1e-4) {
+      n.set(dx / dist, dy / dist, dz / dist);
+      sdf = dist - R;
+      cp.set(cx, cy, cz).addScaledVector(n, R);
+    } else {
+      var ax = Math.abs(_L.x), ay = Math.abs(_L.y), az = Math.abs(_L.z), m = Math.max(ax, ay, az);
+      if (m === ax) n.set(_L.x < 0 ? -1 : 1, 0, 0); else if (m === ay) n.set(0, _L.y < 0 ? -1 : 1, 0); else n.set(0, 0, _L.z < 0 ? -1 : 1);
+      sdf = -(HALF - m);
+      cp.copy(_L).addScaledVector(n, -sdf);
+    }
+    return { cp: cp, n: n, sdf: sdf, L: _L };
+  }
+  function contactFor(pWorld, r) {
+    var s = surfaceInfo(pWorld);
+    var pen = r - s.sdf;
+    if (pen <= 0) return null;
+    // 너무 깊이 들어가면(손이 큐브를 통과) 서서히 영향이 사라짐
+    var fade = s.sdf > -0.15 ? 1 : Math.max(0, 1 - (-s.sdf - 0.15) / 0.2);
+    if (fade <= 0) return null;
+    return { cp: s.cp, n: s.n, depth: Math.min(pen, 0.6) * fade, r: r };
+  }
+
+  // 접촉 한 점의 상태를 추적: A1(안정화) → A2(깊이 곡선)
+  function depthCurve(x) { return TUNE.a2Sat * Math.tanh(TUNE.a2Gain * x / TUNE.a2Sat); }
+  function contactTracked(H, key, pWorld, r) {
+    var s = surfaceInfo(pWorld);
+    var pen = r - s.sdf;
+    var fade = s.sdf > -0.15 ? 1 : Math.max(0, 1 - (-s.sdf - 0.15) / 0.2);
+    var cs = H.cs[key] || (H.cs[key] = { on: false, d: 0, out: 0, raw: 0, trans: 0, n: new THREE.Vector3(), oe: new OneEuro(TUNE.a1Cut, TUNE.a1Beta), cp: new THREE.Vector3() });
+    devStats.cs[H.slot + ":" + key] = cs;
+    cs.raw = pen;
+    var wasOn = cs.on, depth;
+    if (!FLAGS.a1) {                                           // 이전 방식: 그대로 사용
+      cs.on = pen > 0 && fade > 0;
+      if (cs.on !== wasOn) cs.trans++;
+      if (!cs.on) { cs.d = cs.out = 0; return null; }
+      cs.d = Math.min(pen, 0.6) * fade;
+      cs.n.copy(s.n);
+    } else {
+      // A1: 닿음/떨어짐에 여유(히스테리시스), 누르는 방향 고정, 깊이 필터, 변화 속도 제한
+      if (!cs.on) {
+        if (pen > TUNE.a1Enter && fade > 0) { cs.on = true; cs.n.copy(s.n); cs.d = 0; cs.oe.x = null; cs.oe.dx = 0; }
+      } else if (pen < -TUNE.a1Exit || fade <= 0) cs.on = false;
+      if (cs.on !== wasOn) cs.trans++;
+      if (!cs.on) { cs.d = cs.out = 0; return null; }
+      cs.n.lerp(s.n, 0.08).normalize();
+      cs.oe.minCut = TUNE.a1Cut; cs.oe.beta = TUNE.a1Beta;
+      var raw = Math.max(0, Math.min(pen, 0.6)) * fade;
+      var f = cs.oe.filter(raw, curDt), lim = TUNE.a1Rate * curDt;
+      cs.d += clamp(f - cs.d, -lim, lim);
+    }
+    depth = FLAGS.a2 ? depthCurve(cs.d) : cs.d;               // A2: 손 이동보다 느리게 눌려 저항감을 줌
+    cs.out = depth; cs.cp.copy(s.cp);
+    return { cp: s.cp, n: cs.n, depth: depth, r: r, tip: r < 0.12 };
+  }
+
+  /* ---------- 몸체(공중에 떠서 밀려나는 움직임) ---------- */
+  var bodyP = new THREE.Vector3(), bodyV = new THREE.Vector3(), bodyF = new THREE.Vector3();
+  var rotA = new THREE.Vector3(), rotV = new THREE.Vector3(), torque = new THREE.Vector3();
+  function updateBody(dt, t) {
+    var k = 2.4, c = 3.4;
+    bodyV.x += (bodyF.x - bodyP.x * k - bodyV.x * c) * dt;
+    bodyV.y += (bodyF.y - bodyP.y * k - bodyV.y * c) * dt;
+    bodyV.z += (bodyF.z - bodyP.z * k - bodyV.z * c) * dt;
+    bodyP.addScaledVector(bodyV, dt);
+    if (bodyP.length() > 1.5) bodyP.setLength(1.5);
+    var kr = 6, cr = 4;
+    rotV.x += (torque.x * 0.9 - rotA.x * kr - rotV.x * cr) * dt;
+    rotV.y += (torque.y * 0.9 - rotA.y * kr - rotV.y * cr) * dt;
+    rotV.z += (torque.z * 0.9 - rotA.z * kr - rotV.z * cr) * dt;
+    rotA.addScaledVector(rotV, dt);
+    mesh.position.set(0, Math.sin(t * 1.1) * 0.02, 0);
+    mesh.rotation.set(0, 0.3, 0);
+  }
+
+  var _mid = new THREE.Vector3(), _q = new THREE.Quaternion(), _w = new THREE.Vector3(), _f = new THREE.Vector3(), _r = new THREE.Vector3();
+  function addForceAt(cpLocal, nLocal, mag) {
+    _f.copy(nLocal).applyQuaternion(mesh.quaternion).multiplyScalar(-mag);     // 손가락 반대쪽으로 밀림
+    bodyF.add(_f);
+    _r.copy(cpLocal).applyMatrix4(mesh.matrixWorld).sub(mesh.position);
+    torque.add(_w.copy(_r).cross(_f));
+  }
+  function updateInteraction(now) {
+    contacts.length = 0; grabsList.length = 0; bodyF.set(0, 0, 0); torque.set(0, 0, 0);
+    mesh.updateMatrixWorld(true);
+    for (var s = 0; s < 2; s++) {
+      var H = hands[s];
+      if (!H) continue;
+      if (now - H.lastSeen > 0.35) { hands[s] = null; continue; }      // 사라진 손: 집기 해제
+      H.touch = {};
+      var palmLen = H.pts[0].distanceTo(H.pts[9]);
+      H.palmLen = palmLen;
+      H.rTip = clamp(0.09 * palmLen, 0.045, 0.11);
+      H.rPalm = clamp(0.32 * palmLen, 0.12, 0.26);
+      // 집기(엄지-검지 모으기)
+      _mid.copy(H.pts[4]).add(H.pts[8]).multiplyScalar(0.5);
+      if (!H.pinching && H.ratio < 0.32) {
+        H.pinching = true;
+        var si = surfaceInfo(_mid);
+        if (si.sdf < 0.22) H.grab = { cp: si.cp.clone(), start: _mid.clone() };
+      } else if (H.pinching && H.ratio > 0.5) {
+        H.pinching = false; H.grab = null;
+      }
+      if (H.grab) {
+        _w.copy(_mid).sub(H.grab.start);
+        if (_w.length() > 1.7) {
+          H.grab = null;                                   // 한계를 넘으면 손가락에서 미끄러져 빠짐 → 원래 모양으로 돌아옴
+        } else {
+          bodyF.addScaledVector(_w, 2.2);
+          _q.copy(mesh.quaternion).invert();
+          grabsList.push({ cp: H.grab.cp, vec: _w.clone().applyQuaternion(_q) });
+          H.touch[4] = H.touch[8] = true;
+        }
+      }
+      // 손가락 끝
+      for (var t = 0; t < TIPS.length; t++) {
+        var idx = TIPS[t];
+        if (H.grab && (idx === 4 || idx === 8)) { if (H.cs["t" + idx]) H.cs["t" + idx].on = false; continue; }
+        var c = contactTracked(H, "t" + idx, H.pts[idx], H.rTip);
+        if (c) { contacts.push(c); H.touch[idx] = true; addForceAt(c.cp, c.n, c.depth * 3); }
+      }
+      // 손바닥
+      var pc = _mid.set(0, 0, 0);
+      var pi = [0, 5, 9, 13, 17];
+      for (var u = 0; u < pi.length; u++) pc.add(H.pts[pi[u]]);
+      pc.multiplyScalar(1 / pi.length);
+      H.palm = pc.clone();
+      var cpalm = contactTracked(H, "palm", pc, H.rPalm);
+      if (cpalm) { contacts.push(cpalm); H.touch.palm = true; addForceAt(cpalm.cp, cpalm.n, cpalm.depth * 3); }
+    }
+    if (mouseOn || pinch.active) mouseContribute(curDt);
+    bodyF.set(0, 0, 0); torque.set(0, 0, 0);                 // 큐브는 제자리에 고정: 밀려나거나 돌아가지 않음
+    contactActive = contacts.length > 0 || grabsList.length > 0;
+  }
+
+  /* ---------- 손 표시: 자세에 맞춰 그려지는 손 이미지(기본) / 뼈대 ---------- */
+  var handStyle = 0;   // 0 살구, 1 유령, 2 뼈대
+  var STYLES = [
+    { name: "실제 손", real: true },
+    { name: "유령", fill: "#e9e5ff", outline: "#8f7bff", light: "rgba(255,255,255,0.7)", glow: "rgba(150,120,255,0.6)", opacity: 0.62 },
+    { name: "뼈대" }
+  ];
+  var SKIN = { name: "살구", fill: "#f4c8b2", outline: "#b97f68", light: "rgba(255,244,236,0.5)", glow: "rgba(255,110,130,0.55)", opacity: 0.94 };   // 카메라가 없는 데모에서만 사용
+  var FINGERS = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]];
+  var PALM_RING = [0, 1, 5, 9, 13, 17];
+  var hand2d = document.getElementById("hand2d"), hctx = hand2d.getContext("2d");
+  var offc = document.createElement("canvas"), octx = offc.getContext("2d");
+  var vcan = document.createElement("canvas"), vctx = vcan.getContext("2d");
+  function resize2d() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), w = window.innerWidth, h = window.innerHeight;
+    hand2d.width = offc.width = vcan.width = Math.round(w * dpr); hand2d.height = offc.height = vcan.height = Math.round(h * dpr);
+    hctx.setTransform(dpr, 0, 0, dpr, 0, 0); octx.setTransform(dpr, 0, 0, dpr, 0, 0); vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  var _pv = new THREE.Vector3();
+  function proj(P) {
+    _pv.copy(P).project(camera);
+    return [(_pv.x * 0.5 + 0.5) * window.innerWidth, (-_pv.y * 0.5 + 0.5) * window.innerHeight];
+  }
+  function drawOneHand(H, st, W, Hh) {
+    var Q;
+    if (st.real) { Q = []; for (var qi = 0; qi < 21; qi++) Q.push([H.sx[qi] * W, H.sy[qi] * Hh]); }   // 영상과 어긋나지 않게 필터 전 좌표 사용
+    else Q = H.pts.map(proj);
+    var palmPx = Math.hypot(Q[0][0] - Q[9][0], Q[0][1] - Q[9][1]);
+    if (!isFinite(palmPx) || palmPx < 4) return;
+    var fw = palmPx * (st.real ? 0.205 : 0.2);               // 손가락 굵기
+    var ow = Math.max(2, fw * 0.14);                        // 윤곽선 두께
+    var segs = [];
+    FINGERS.forEach(function (f, fi) {
+      for (var j = 0; j < 3; j++) {
+        var w = fw * (fi === 0 ? 1.15 : 1) * (1 - 0.07 * j) * (j === 2 ? 0.95 : 1);
+        segs.push({ a: Q[f[j]], b: Q[f[j + 1]], w: w, tip: j === 2 ? f[3] : -1 });
+      }
+    });
+    // 손목 아래 팔 (끝으로 갈수록 투명)
+    var cx = 0, cy = 0;
+    PALM_RING.forEach(function (i) { cx += Q[i][0]; cy += Q[i][1]; });
+    cx /= 6; cy /= 6;
+    var dx = Q[0][0] - cx, dy = Q[0][1] - cy, dl = Math.hypot(dx, dy) || 1;
+    var fore = { x1: Q[0][0], y1: Q[0][1], x2: Q[0][0] + dx / dl * palmPx * 1.1, y2: Q[0][1] + dy / dl * palmPx * 1.1, w: palmPx * 0.5 };
+    function paintPass(color, extra, isOutline) {
+      octx.lineCap = "round"; octx.lineJoin = "round";
+      // 팔
+      var g = octx.createLinearGradient(fore.x1, fore.y1, fore.x2, fore.y2);
+      g.addColorStop(0, color); g.addColorStop(1, color.replace("rgb", "rgba").replace(")", ",0)"));
+      octx.strokeStyle = g; octx.lineWidth = fore.w + extra;
+      octx.beginPath(); octx.moveTo(fore.x1, fore.y1); octx.lineTo(fore.x2, fore.y2); octx.stroke();
+      // 손바닥
+      octx.fillStyle = color; octx.strokeStyle = color; octx.lineWidth = fw * 0.75 + extra;
+      octx.beginPath();
+      PALM_RING.forEach(function (i, k) { if (k === 0) octx.moveTo(Q[i][0], Q[i][1]); else octx.lineTo(Q[i][0], Q[i][1]); });
+      octx.closePath(); octx.fill(); octx.stroke();
+      // 손가락
+      segs.forEach(function (sg) {
+        octx.strokeStyle = color; octx.lineWidth = sg.w + extra;
+        octx.beginPath(); octx.moveTo(sg.a[0], sg.a[1]); octx.lineTo(sg.b[0], sg.b[1]); octx.stroke();
+      });
+    }
+    octx.clearRect(0, 0, W, Hh);
+    if (st.real) {
+      // 손 모양 마스크 안에 있는 카메라 화면만 남기고 나머지(나, 배경)는 지움
+      paintPass("rgb(255,255,255)", fw * 0.04, false);
+      var vw2 = video.videoWidth || 640, vh2 = video.videoHeight || 480, sc2 = Math.max(W / vw2, Hh / vh2), dw2 = vw2 * sc2, dh2 = vh2 * sc2;
+      vctx.save(); vctx.setTransform(1, 0, 0, 1, 0, 0); vctx.clearRect(0, 0, vcan.width, vcan.height); vctx.restore();
+      vctx.save(); vctx.scale(-1, 1); vctx.translate(-W, 0);
+      vctx.drawImage(video, (W - dw2) / 2, (Hh - dh2) / 2, dw2, dh2);
+      vctx.restore();
+      vctx.save(); vctx.globalCompositeOperation = "destination-in";
+      if ("filter" in vctx) vctx.filter = "blur(" + Math.max(1.5, fw * 0.06).toFixed(1) + "px)";
+      vctx.drawImage(offc, 0, 0, W, Hh);
+      vctx.restore();
+      hctx.save(); hctx.shadowColor = "rgba(60,40,140,0.22)"; hctx.shadowBlur = 16; hctx.shadowOffsetY = 5;
+      hctx.drawImage(vcan, 0, 0, W, Hh);
+      hctx.restore();
+      return;
+    }
+    paintPass(rgbOf(st.outline), ow * 2, true);                // 윤곽선(하나로 합쳐 보임)
+    paintPass(rgbOf(st.fill), 0, false);                       // 살색
+    // 빛 받는 하이라이트(위쪽·왼쪽)
+    octx.lineCap = "round"; octx.strokeStyle = st.light;
+    segs.forEach(function (sg) {
+      var o = sg.w * 0.2;
+      octx.lineWidth = sg.w * 0.32;
+      octx.beginPath(); octx.moveTo(sg.a[0] - o, sg.a[1] - o); octx.lineTo(sg.b[0] - o, sg.b[1] - o); octx.stroke();
+    });
+    // 손톱
+    segs.forEach(function (sg) {
+      if (sg.tip < 0) return;
+      var vx = sg.b[0] - sg.a[0], vy = sg.b[1] - sg.a[1], vl = Math.hypot(vx, vy) || 1;
+      octx.fillStyle = "rgba(255,255,255,0.35)";
+      octx.beginPath(); octx.ellipse(sg.b[0] - vx / vl * sg.w * 0.15, sg.b[1] - vy / vl * sg.w * 0.15, sg.w * 0.26, sg.w * 0.34, Math.atan2(vy, vx) + Math.PI / 2, 0, 6.2832); octx.fill();
+    });
+    // 닿은 손가락 끝은 붉게 빛남
+    if (H.touch) {
+      [4, 8, 12, 16, 20].forEach(function (k) {
+        if (!H.touch[k]) return;
+        var g = octx.createRadialGradient(Q[k][0], Q[k][1], 0, Q[k][0], Q[k][1], fw * 0.9);
+        g.addColorStop(0, st.glow); g.addColorStop(1, "rgba(255,255,255,0)");
+        octx.fillStyle = g; octx.beginPath(); octx.arc(Q[k][0], Q[k][1], fw * 0.9, 0, 6.2832); octx.fill();
+      });
+    }
+    hctx.globalAlpha = st.opacity;
+    hctx.drawImage(offc, 0, 0, W, Hh);
+    hctx.globalAlpha = 1;
+  }
+  function rgbOf(hex) {            // "#rrggbb" → "rgb(r,g,b)"
+    var n = parseInt(hex.slice(1), 16);
+    return "rgb(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + ")";
+  }
+  function drawHands2d() {
+    var W = window.innerWidth, Hh = window.innerHeight;
+    hctx.clearRect(0, 0, W, Hh);
+    if (handStyle === 2) return;
+    var st = STYLES[handStyle];
+    if (st.real && !(camOn && video.readyState >= 2)) st = SKIN;
+    for (var s = 0; s < 2; s++) if (hands[s]) drawOneHand(hands[s], st, W, Hh);
+  }
+
+  // 뼈대 표시(디버그용)
+  var CONN = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  var jointPos = new Float32Array(42 * 3), bonePos = new Float32Array(2 * CONN.length * 2 * 3);
+  var jointGeo = new THREE.BufferGeometry(); jointGeo.setAttribute("position", new THREE.BufferAttribute(jointPos, 3));
+  var boneGeo = new THREE.BufferGeometry(); boneGeo.setAttribute("position", new THREE.BufferAttribute(bonePos, 3));
+  var dotTex = (function () {
+    var c = document.createElement("canvas"); c.width = c.height = 32;
+    var g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.beginPath(); g.arc(16, 16, 12, 0, 6.2832); g.fill();
+    g.strokeStyle = "rgba(90,70,230,.9)"; g.lineWidth = 3; g.stroke();
+    return new THREE.CanvasTexture(c);
+  })();
+  var joints = new THREE.Points(jointGeo, new THREE.PointsMaterial({ size: 8, sizeAttenuation: false, map: dotTex, transparent: true, alphaTest: 0.2, depthTest: false }));
+  var bones = new THREE.LineSegments(boneGeo, new THREE.LineBasicMaterial({ color: 0x6b5cff, transparent: true, opacity: 0.8, depthTest: false }));
+  joints.frustumCulled = bones.frustumCulled = false;
+  joints.renderOrder = 21; bones.renderOrder = 20;
+  scene.add(bones); scene.add(joints);
+
+  function applyHandStyle() {
+    var skel = handStyle === 2;
+    bones.visible = joints.visible = skel;
+  }
+  applyHandStyle();
+
+  function updateMarkers() {
+    var skel = handStyle === 2;
+    drawHands2d();
+    if (!skel) return;
+    for (var s = 0; s < 2; s++) {
+      var H = hands[s], k, ci;
+      for (k = 0; k < 21; k++) {
+        var o = (s * 21 + k) * 3;
+        if (H) { jointPos[o] = H.pts[k].x; jointPos[o + 1] = H.pts[k].y; jointPos[o + 2] = H.pts[k].z; }
+        else { jointPos[o] = jointPos[o + 1] = 0; jointPos[o + 2] = 999; }
+      }
+      for (ci = 0; ci < CONN.length; ci++) {
+        var b = (s * CONN.length + ci) * 6, a = CONN[ci][0], e = CONN[ci][1];
+        if (H) {
+          bonePos[b] = H.pts[a].x; bonePos[b + 1] = H.pts[a].y; bonePos[b + 2] = H.pts[a].z;
+          bonePos[b + 3] = H.pts[e].x; bonePos[b + 4] = H.pts[e].y; bonePos[b + 5] = H.pts[e].z;
+        } else { for (var z = 0; z < 6; z++) bonePos[b + z] = 999; }
+      }
+    }
+    jointGeo.attributes.position.needsUpdate = true; boneGeo.attributes.position.needsUpdate = true;
+  }
+
+  /* ---------- 데모 손(카메라 없이 체험) ---------- */
+  var HAND_T = [[0,-.35,0],[.12,-.28,.02],[.2,-.2,.04],[.26,-.12,.06],[.3,-.05,.08],[.1,0,0],[.11,.1,0],[.115,.17,0],[.12,.23,0],[.03,.02,0],[.03,.13,0],[.03,.21,0],[.03,.28,0],[-.04,0,0],[-.05,.1,0],[-.05,.17,0],[-.05,.23,0],[-.1,-.03,0],[-.11,.05,0],[-.115,.1,0],[-.12,.15,0]];
+  var HS = 1.6;
+  function demoPts(H, tip, fold, pinch, rot) {
+    var P = HAND_T.map(function (a) { return new THREE.Vector3(a[0] * HS, a[1] * HS, a[2] * HS); });
+    var groups = [[9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]];
+    groups.forEach(function (g) {
+      g.forEach(function (i, n) {
+        P[i].y = P[i].y * (1 - 0.75 * fold) ; P[i].z = P[i].z + 0.1 * HS * fold * (n + 1) / 4;
+      });
+    });
+    var pinchT = P[8].clone().add(new THREE.Vector3(0.012, -0.01, 0.01));
+    P[4].lerp(pinchT, pinch);
+    P[3].lerp(P[8].clone().add(new THREE.Vector3(0.05, -0.05, 0.02)), pinch * 0.7);
+    P[2].lerp(P[8].clone().add(new THREE.Vector3(0.11, -0.12, 0.02)), pinch * 0.45);
+    var c = Math.cos(rot), s = Math.sin(rot), tipLocal = P[8].clone();
+    P.forEach(function (p) { var x = p.x, y = p.y; p.x = x * c - y * s; p.y = x * s + y * c; });
+    var t8 = new THREE.Vector3(tipLocal.x * c - tipLocal.y * s, tipLocal.x * s + tipLocal.y * c, tipLocal.z);
+    var off = tip.clone().sub(P[8]);
+    for (var i = 0; i < 21; i++) { H.pts[i].copy(P[i]).add(off); }
+    H.fresh = false;
+    H.ratio = H.pts[4].distanceTo(H.pts[8]) / H.pts[0].distanceTo(H.pts[9]);
+    injectNoise(H);
+  }
+  function kf(keys, t) {           // 키프레임 보간 [t, x, y, z, pinch]
+    if (t <= keys[0][0]) return keys[0].slice(1);
+    for (var i = 1; i < keys.length; i++) {
+      if (t <= keys[i][0]) {
+        var a = keys[i - 1], b = keys[i], u = (t - a[0]) / (b[0] - a[0]);
+        u = u * u * (3 - 2 * u);
+        return [1, 2, 3, 4].map(function (j) { return a[j] + (b[j] - a[j]) * u; });
+      }
+    }
+    return keys[keys.length - 1].slice(1);
+  }
+  var DEMO_LEN = 15.5;
+  var KEYS_POKE = [[0,1.0,.6,1.4,0],[1.3,.15,.1,.78,0],[1.9,.15,.1,.36,0],[2.5,.15,.1,1.0,0],[3.3,-.25,-.15,.85,0],[3.8,-.25,-.15,.62,0],[4.4,-.25,-.15,.28,0],[5.4,-.25,-.15,.28,0],[6.1,-.25,-.15,1.1,0],[6.8,1.3,.5,1.4,0]];
+  var KEYS_L = [[7,-1.4,.2,.3,0],[7.9,-.64,.04,.1,0],[8.3,-.62,.04,.1,1],[10.6,-1.55,.1,.1,1],[11.4,-1.55,.1,.1,1],[11.7,-1.55,.1,.1,0],[12.8,-1.7,.5,.8,0]];
+  var KEYS_R = [[7,1.4,.2,.3,0],[7.9,.64,.04,.1,0],[8.3,.62,.04,.1,1],[10.6,1.55,.1,.1,1],[11.4,1.55,.1,.1,1],[11.7,1.55,.1,.1,0],[12.8,1.7,.5,.8,0]];
+  function demoUpdate(tsec, now) {
+    var t = tsec % DEMO_LEN;
+    var H0 = hands[1] || (hands[1] = newHand(1)), H1;
+    if (t < 6.8) {
+      var k = kf(KEYS_POKE, t);
+      demoPts(H0, new THREE.Vector3(k[0], k[1], k[2]), 1, 0, -0.22);
+      H0.lastSeen = now;
+      hands[0] = null;
+      setStatus(t < 3 ? "검지로 콕콕 찌르는 중" : "꾹 누르는 중. 놓으면 천천히 돌아와요");
+    } else if (t < 13.3) {
+      var kl = kf(KEYS_L, t), kr = kf(KEYS_R, t);
+      H1 = hands[0] || (hands[0] = newHand(0));
+      demoPts(H1, new THREE.Vector3(kl[0], kl[1], kl[2]), 1, kl[3], 0.35);
+      demoPts(H0, new THREE.Vector3(kr[0], kr[1], kr[2]), 1, kr[3], -0.35);
+      H0.lastSeen = H1.lastSeen = now;
+      setStatus("엄지와 검지로 양쪽을 집어서 늘리는 중");
+    } else {
+      hands[0] = hands[1] = null;
+      setStatus("데모 반복 중. 카메라로 직접 해 보세요");
+    }
+  }
+
+  /* ---------- 카메라 + 손 인식 모델(Hugging Face) ---------- */
+  var TASKS_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+  var WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+  var MODEL_URLS = [
+    "https://huggingface.co/Leo-TX/mediapipe-hand/resolve/main/hand_landmarker.task",
+    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task"
+  ];
+  async function loadModel() {
+    setStatus("손 인식 모델(Hugging Face)을 불러오는 중… 처음엔 몇 초 걸려요");
+    try {
+      var mod = await import(TASKS_URL);
+      var vision = await mod.FilesetResolver.forVisionTasks(WASM_URL);
+      var lastErr = null;
+      for (var u = 0; u < MODEL_URLS.length && !landmarker; u++) {
+        var delegates = ["GPU", "CPU"];
+        for (var d = 0; d < delegates.length && !landmarker; d++) {
+          try {
+            landmarker = await mod.HandLandmarker.createFromOptions(vision, {
+              baseOptions: { modelAssetPath: MODEL_URLS[u], delegate: delegates[d] },
+              runningMode: "VIDEO", numHands: 2,
+              minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5
+            });
+            window.__handModel = MODEL_URLS[u].indexOf("huggingface") >= 0 ? "huggingface" : "google";
+          } catch (e) { lastErr = e; }
+        }
+      }
+      if (!landmarker) throw lastErr || new Error("model");
+      setStatus("준비됐어요. 카메라에 손을 보여 주세요");
+    } catch (e) {
+      setStatus("손 인식 모델을 불러오지 못했어요. 인터넷 연결을 확인하거나, 이 파일을 https 주소나 localhost에서 열어 주세요.");
+      console.error(e);
+    }
+  }
+  async function startCamera() {
+    setStatus("카메라 권한을 확인하는 중…");
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60 } }, audio: false });
+      video.srcObject = stream;
+      await video.play();
+    } catch (e) {
+      var name = e && e.name, inFrame = window.self !== window.top;
+      var msg;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) msg = "이 주소에서는 카메라를 쓸 수 없어요. https 주소나 localhost에서 열어 주세요.";
+      else if (name === "NotAllowedError" || name === "SecurityError") msg = inFrame ? "미리보기 창 안에서는 카메라가 막혀 있어요. 파일을 내려받아 브라우저에서 직접 열거나, 배포한 주소로 열어 주세요." : "카메라 권한이 막혀 있어요. 주소창의 카메라 아이콘에서 허용한 뒤 다시 눌러 주세요.";
+      else if (name === "NotFoundError" || name === "OverconstrainedError") msg = "연결된 카메라를 찾지 못했어요.";
+      else if (name === "NotReadableError") msg = "다른 앱이 카메라를 쓰고 있어요. 닫고 다시 눌러 주세요.";
+      else msg = "카메라를 켤 수 없어요. (" + (name || "알 수 없는 오류") + ")";
+      setStatus(msg + " 카메라 없이 보려면 '데모 보기'를 눌러 주세요.");
+      return false;
+    }
+    camOn = true; demoOn = false; mouseOn = false; autoCal = true; calibAt = 0;
+    document.body.classList.add("novideo");
+    hands[0] = hands[1] = null;
+    document.getElementById("intro").hidden = true;
+    showControls();
+    ensureAudio();
+    if (!landmarker) await loadModel(); else setStatus("카메라에 손을 보여 주세요");
+    return true;
+  }
+  function stopCamera() {
+    camOn = false;
+    if (video.srcObject) { video.srcObject.getTracks().forEach(function (t) { t.stop(); }); video.srcObject = null; }
+  }
+  function detect(now) {
+    if (!landmarker || !camOn || video.readyState < 2 || video.currentTime === lastVT) return;
+    lastVT = video.currentTime;
+    var res;
+    try { res = landmarker.detectForVideo(video, performance.now()); } catch (e) { return; }
+    var n = res.landmarks ? res.landmarks.length : 0, i;
+    // 손 자리 배정: 두 손이면 화면 왼쪽→슬롯0, 한 손이면 직전 손과 가까운 쪽(없으면 화면 위치)
+    var wxs = [];
+    for (i = 0; i < n; i++) wxs.push(1 - res.landmarks[i][0].x);
+    var slots = [];
+    if (n >= 2) { slots = wxs[0] <= wxs[1] ? [0, 1] : [1, 0]; }
+    else if (n === 1) {
+      var best = -1, bd = 0.25;
+      for (var s2 = 0; s2 < 2; s2++) {
+        if (hands[s2] && now - hands[s2].lastSeen < 0.5) { var d = Math.abs(hands[s2].wx - wxs[0]); if (d < bd) { bd = d; best = s2; } }
+      }
+      slots = [best >= 0 ? best : (wxs[0] < 0.5 ? 0 : 1)];
+    }
+    if (DEV.rec) DEV.cur = { t: now - DEV.t0, h: [] };
+    for (i = 0; i < n && i < 2; i++) {
+      var wl = res.worldLandmarks && res.worldLandmarks[i] ? res.worldLandmarks[i] : null;
+      var H = ingestLandmarks(res.landmarks[i], wl, slots[i], now);
+      if (DEV.rec && DEV.cur) DEV.cur.h.push({ s: slots[i], lm: flat(res.landmarks[i]), wl: wl ? flat(wl) : null });
+      if (autoCal) {                                   // 처음 보인 손의 거리를 기준으로: 화면 쪽으로 뻗으면 닿음
+        if (!calibAt) calibAt = now;
+        if (now - calibAt > 0.8) {
+          refSize = H.size + 0.62 / params.gain; autoCal = false;
+          setStatus("기준이 잡혔어요. 손을 화면 쪽으로 뻗어 큐브를 만져 보세요");
+        }
+      }
+    }
+    if (DEV.rec && DEV.cur) { DEV.frames.push(DEV.cur); DEV.cur = null; }
+    if (n === 0 && autoCal) calibAt = 0;
+  }
+
+  /* ---------- 소리 (WebAudio로 합성) ----------
+     질척: 눌리는 속도에 따라 젖은 반죽 소리가 이어지고, 가끔 작은 기포가 터짐
+     톡:   누를 때·뗄 때 짧고 작은 소리만
+     끔:   소리 없음 */
+  var actx = null, noiseBuf = null, brownBuf = null, tn = null;
+  var soundMode = "wet";
+  var sq = null;   // 이어지는 질척 소리 체인
+  function ensureAudio() {
+    if (actx) { if (actx.state === "suspended") actx.resume(); return; }
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      var sr = actx.sampleRate;
+      noiseBuf = actx.createBuffer(1, Math.floor(sr * 0.4), sr);
+      var d = noiseBuf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      // 갈색 노이즈: 저음이 풍부해서 묵직하고 질척한 소리의 바탕이 됨
+      brownBuf = actx.createBuffer(1, sr * 2, sr);
+      var b = brownBuf.getChannelData(0), last = 0;
+      for (var k = 0; k < b.length; k++) {
+        last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+        b[k] = last * 3.5;
+      }
+      var src = actx.createBufferSource(); src.buffer = brownBuf; src.loop = true;
+      var bp = actx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 300; bp.Q.value = 1.6;
+      var lp = actx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100;
+      var g = actx.createGain(); g.gain.value = 0;
+      src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(actx.destination);
+      src.start();
+      sq = { bp: bp, g: g };
+      var to = actx.createOscillator(); to.type = "sawtooth"; to.frequency.value = 160;
+      var tl = actx.createBiquadFilter(); tl.type = "lowpass"; tl.frequency.value = 900; tl.Q.value = 2;
+      var tg = actx.createGain(); tg.gain.value = 0;
+      to.connect(tl); tl.connect(tg); tg.connect(actx.destination); to.start();
+      tn = { o: to, g: tg };
+    } catch (e) { actx = null; }
+  }
+  function burst(freq, q, dur, gain) {
+    var t = actx.currentTime;
+    var s = actx.createBufferSource(); s.buffer = noiseBuf;
+    var f = actx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq; f.Q.value = q;
+    var g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(actx.destination);
+    s.start(t); s.stop(t + dur + 0.02);
+  }
+  function pop(f0, f1, dur, gain) {
+    var t = actx.currentTime;
+    var o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function playPress(depth) {
+    if (!actx || soundMode === "off") return;
+    if (soundMode === "wet") burst(240, 1.2, 0.12, 0.1);
+    else pop(330, 190, 0.05, 0.07);
+  }
+  function playRelease(depth) {
+    if (!actx || soundMode === "off") return;
+    if (soundMode === "wet") { burst(420, 1.4, 0.1, 0.07); }
+    else pop(210, 360, 0.05, 0.06);
+  }
+  // 매 프레임: 변형 속도에 따라 질척 소리 크기·음색 조절
+  function snapSound(sv) {            // A4: 늘렸다 놓을 때 '탁'
+    if (!actx || soundMode === "off") return;
+    pop(220 + 300 * sv, 90, 0.14, 0.14 * sv);
+    burst(520, 1.3, 0.07, 0.07 * sv);
+  }
+  function updateSound(dt) {
+    if (!actx || !sq) return;
+    var now = actx.currentTime;
+    if (tn) {                          // A4: 늘어날수록 소리가 점점 높아지는 팽팽한 소리
+      var on4 = FLAGS.a4 && soundMode !== "off" && strainNow > 0.03;
+      var rate = Math.abs(strainNow - strainPrev) / Math.max(dt, 0.001);
+      tn.g.gain.setTargetAtTime(on4 ? clamp(0.015 + 0.06 * strainNow + Math.min(1, rate * 1.5) * 0.05, 0, 0.12) : 0, now, 0.05);
+      tn.o.frequency.setTargetAtTime(150 + 520 * strainNow * TUNE.a4Tone, now, 0.06);
+    }
+    var on = soundMode === "wet";
+    var v = Math.min(1, speed * 9);
+    sq.g.gain.setTargetAtTime(on ? v * 0.5 : 0, now, 0.04);
+    sq.bp.frequency.setTargetAtTime(220 + v * 520, now, 0.05);
+    if (on && v > 0.12 && Math.random() < dt * 22 * v) {
+      var f = 130 + Math.random() * 170;
+      pop(f, f * (1.5 + Math.random() * 0.7), 0.045 + Math.random() * 0.04, 0.03 + 0.05 * v);
+    }
+  }
+
+  /* ---------- 푸딩: 몸 전체가 찰랑찰랑 흔들림 ---------- */
+  var wob = { sx: 0, sz: 0, vx: 0, vz: 0, q: 0, vq: 0, tx: 0, tz: 0, tq: 0 };
+  var restMinY = Infinity, restMaxY = -Infinity;
+  for (var wi = 0; wi < N; wi++) { restMinY = Math.min(restMinY, rest[wi * 3 + 1]); restMaxY = Math.max(restMaxY, rest[wi * 3 + 1]); }
+  function wobbleStep(dt) {
+    var on = puddingU.value === 1;
+    var ws = 13, zs = 0.06, wq = 17, zq = 0.08;                // 낮은 감쇠 → 오래 찰랑임
+    var tx = on ? wob.tx : 0, tz = on ? wob.tz : 0, tq = on ? wob.tq : 0;
+    var sub = 3, h = dt / sub;
+    for (var k = 0; k < sub; k++) {
+      wob.vx += (ws * ws * (tx - wob.sx) - 2 * zs * ws * wob.vx) * h; wob.sx += wob.vx * h;
+      wob.vz += (ws * ws * (tz - wob.sz) - 2 * zs * ws * wob.vz) * h; wob.sz += wob.vz * h;
+      wob.vq += (wq * wq * (tq - wob.q) - 2 * zq * wq * wob.vq) * h; wob.q += wob.vq * h;
+    }
+    var mag = Math.abs(wob.sx) + Math.abs(wob.sz) + Math.abs(wob.q) + 0.05 * (Math.abs(wob.vx) + Math.abs(wob.vz) + Math.abs(wob.vq));
+    if (mag < 1e-4 && !on) { wob.sx = wob.sz = wob.q = wob.vx = wob.vz = wob.vq = 0; return false; }
+    return mag > 1e-4;
+  }
+  // 바닥에 놓인 경우 아래는 고정, 위로 갈수록 크게 흔들림 / 공중이면 가운데를 중심으로 흔들림
+  function applyWobble(p, floorAnchored) {
+    if (Math.abs(wob.sx) + Math.abs(wob.sz) + Math.abs(wob.q) < 1e-6) return;
+    var H = restMaxY - restMinY, mid = (restMinY + restMaxY) / 2;
+    for (var i = 0; i < N; i++) {
+      var y = rest[i * 3 + 1], sh;
+      if (floorAnchored) { var u = Math.max(0, (y - restMinY) / H); sh = Math.pow(u, 1.5); p[i * 3 + 1] = restMinY + (p[i * 3 + 1] - restMinY) * (1 - wob.q); }
+      else { sh = (y - mid) / (H / 2) * 0.6; p[i * 3 + 1] = mid + (p[i * 3 + 1] - mid) * (1 - wob.q); }
+      p[i * 3] = p[i * 3] * (1 + 0.5 * wob.q) + wob.sx * sh;
+      p[i * 3 + 2] = p[i * 3 + 2] * (1 + 0.5 * wob.q) + wob.sz * sh;
+    }
+  }
+
+  /* ---------- 물리 한 틱(화면·테스트 공용) ---------- */
+  function physicsTick(now, dt, geom) {
+    curDt = dt; simTime = now;
+    devStats.cs = {};
+    updateInteraction(now);
+    setWobTargets();
+    var wobOn = geom ? wobbleStep(dt) : false;
+    var active = contacts.length > 0 || grabsList.length > 0 || energy > 0.0004 || wobOn;
+    if (active) {
+      computeTargets();
+      strainNow = strainFrame;
+      if (strainPrev > 0.25 && strainNow < 0.02) onStretchRelease(strainPrev);
+      step(dt);
+      if (geom) {
+        applyToGeometry();
+        if (!contactActive && energy <= 0.0004) { disp.fill(0); vel.fill(0); energy = 0; tgt.fill(0); applyToGeometry(); }
+      }
+    } else strainNow = 0;
+    if (DEV.on) {
+      var best = null;
+      for (var k in devStats.cs) { var c = devStats.cs[k]; if (c.on && (!best || c.raw > best.raw)) best = c; }
+      DEV.chart.push([best ? best.raw : 0, best ? best.out : 0, strainNow]);
+      if (DEV.chart.length > 360) DEV.chart.shift();
+    }
+    strainPrev = strainNow;
+  }
+  function onStretchRelease(sv) {
+    snapUntil = simTime + 2.5;
+    if (FLAGS.a4) { devStats.pops++; snapSound(sv); }
+  }
+
+  /* ---------- 자동 테스트(같은 입력으로 A/B 비교) ---------- */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function smooth01(u) { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); }
+  function dentDepth() {
+    var m = 0;
+    for (var i = 0; i < N; i++) { var d = -(disp[i * 3] * restN[i * 3] + disp[i * 3 + 1] * restN[i * 3 + 1] + disp[i * 3 + 2] * restN[i * 3 + 2]); if (d > m) m = d; }
+    return m;
+  }
+  function simReset() {
+    disp.fill(0); vel.fill(0); tgt.fill(0);
+    hands[0] = hands[1] = null; contacts.length = 0; grabsList.length = 0;
+    energy = 0; speed = 0; strainNow = strainPrev = strainFrame = 0; snapUntil = 0; contactActive = false;
+  }
+  function meanStd(a) {
+    if (!a.length) return [0, 0];
+    var m = 0, i; for (i = 0; i < a.length; i++) m += a[i]; m /= a.length;
+    var v = 0; for (i = 0; i < a.length; i++) v += (a[i] - m) * (a[i] - m);
+    return [m, Math.sqrt(v / a.length)];
+  }
+  function nearestVertexTo(v) {
+    var bi = 0, bd = 1e9;
+    for (var i = 0; i < N; i++) { var dx = rest[i * 3] - v.x, dy = rest[i * 3 + 1] - v.y, dz = rest[i * 3 + 2] - v.z, d = dx * dx + dy * dy + dz * dz; if (d < bd) { bd = d; bi = i; } }
+    return bi;
+  }
+  function dentAt(i) { return -(disp[i * 3] * restN[i * 3] + disp[i * 3 + 1] * restN[i * 3 + 1] + disp[i * 3 + 2] * restN[i * 3 + 2]); }
+  function scenarioPoke(dt) {
+    var ts = [], rawS = [], outS = [], idxDent = [], volE = [];
+    var seq = function (t) {
+      if (t < 0.6) return 1.1;
+      if (t < 1.6) return 1.1 + (0.30 - 1.1) * smooth01((t - 0.6) / 1.0);
+      if (t < 4.2) return 0.30 + 0.015 * Math.sin(6.2832 * 1.3 * t);
+      if (t < 5.0) return 0.30 + (1.1 - 0.30) * smooth01((t - 4.2) / 0.8);
+      return 1.1;
+    };
+    var steps = Math.round(8 / dt), vi = -1;
+    for (var i = 0; i < steps; i++) {
+      var t = i * dt, H = hands[1] || (hands[1] = newHand(1));
+      demoPts(H, new THREE.Vector3(0.1, 0.05, seq(t)), 1, 0, -0.22);
+      H.lastSeen = t;
+      physicsTick(t, dt, false);
+      var c8 = H.cs.t8, on = c8 && c8.on;
+      if (on && vi < 0 && t > 2.0) vi = nearestVertexTo(c8.cp);
+      if (t >= 2.0 && t < 4.2) volE.push(Math.abs(volumeWith(disp) - V0) / Math.abs(V0));
+      ts.push(t); rawS.push(on ? c8.raw : 0); outS.push(on ? c8.out : 0); idxDent.push(vi >= 0 ? Math.max(0, dentAt(vi)) : 0);
+    }
+    var flick = 0, H1 = hands[1]; if (H1 && H1.cs && H1.cs.t8) flick = H1.cs.t8.trans;
+    var hr = [], ho = [], hd = [], i2;
+    for (i2 = 0; i2 < ts.length; i2++) if (ts[i2] >= 2.0 && ts[i2] < 4.2) { hr.push(rawS[i2]); ho.push(outS[i2]); hd.push(idxDent[i2]); }
+    var sr = meanStd(hr), so = meanStd(ho), sd = meanStd(hd), rise = NaN, settle = NaN, peak = 0;
+    for (i2 = 0; i2 < ts.length; i2++) {
+      peak = Math.max(peak, idxDent[i2]);
+      if (isNaN(rise) && ts[i2] > 0.6 && idxDent[i2] >= 0.9 * sd[0]) rise = ts[i2] - 0.6;
+      if (isNaN(settle) && ts[i2] > 4.2 && idxDent[i2] < Math.max(0.01, 0.05 * sd[0])) settle = ts[i2] - 4.2;
+    }
+    return { volErr: meanStd(volE)[0], dent: sd[0], dentStd: sd[1], rawStd: sr[1], outStd: so[1], flick: flick, rise: rise, settle: settle, peak: peak };
+  }
+  function scenarioStretch(dt) {
+    var iR = 0, iL = 0, i;
+    for (i = 0; i < N; i++) { if (rest[i * 3] > rest[iR * 3]) iR = i; if (rest[i * 3] < rest[iL * 3]) iL = i; }
+    var w0 = rest[iR * 3] - rest[iL * 3], steps = Math.round(8.4 / dt), tr = 4.7;
+    var peakW = 0, minAfter = 9, lastOut = -1, peakStrain = 0, pops0 = devStats.pops, ws = [];
+    for (i = 0; i < steps; i++) {
+      var t = i * dt;
+      demoUpdate(7 + t, t);
+      physicsTick(t, dt, false);
+      var w = (rest[iR * 3] + disp[iR * 3]) - (rest[iL * 3] + disp[iL * 3]);
+      ws.push(w); peakW = Math.max(peakW, w); peakStrain = Math.max(peakStrain, strainNow);
+      if (t > tr + 0.1) { minAfter = Math.min(minAfter, w); if (Math.abs(w - w0) > 0.03 * w0) lastOut = t; }
+    }
+    return { width: peakW / w0, strain: peakStrain, under: Math.max(0, (w0 - minAfter) / w0), settle: lastOut < 0 ? 0 : Math.max(0, lastOut - tr), pops: devStats.pops - pops0 };
+  }
+  function runScenarios(flags, noise, seed) {
+    var saveF = {}, k;
+    for (k in FLAGS) saveF[k] = FLAGS[k];
+    for (k in flags) FLAGS[k] = flags[k];
+    var saveN = DEV.noise, saveG = gaussFn, saveDemo = demoOn, saveCam = camOn, savePlay = DEV.playing, saveStatus = statusEl.textContent;
+    DEV.noise = noise; gaussFn = (function (r) { return function () { var u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.2832 * v); }; })(mulberry32(seed || 7));
+    demoOn = false; camOn = false; DEV.playing = false;
+    var savedPos = mesh.position.clone(), savedRot = mesh.rotation.clone();
+    mesh.position.set(0, 0, 0); mesh.rotation.set(0, 0.3, 0); mesh.updateMatrixWorld(true);
+    var res = {};
+    simReset(); res.poke = scenarioPoke(1 / 60);
+    simReset(); res.stretch = scenarioStretch(1 / 60);
+    simReset();
+    for (k in saveF) FLAGS[k] = saveF[k];
+    DEV.noise = saveN; gaussFn = saveG; demoOn = saveDemo; camOn = saveCam; DEV.playing = savePlay;
+    mesh.position.copy(savedPos); mesh.rotation.copy(savedRot);
+    applyToGeometry(); setStatus(saveStatus);
+    return res;
+  }
+  var AB_STEPS = [
+    ["기준(모두 끔)", { a1: false, a2: false, a3: false, a4: false }],
+    ["+A1 안정화", { a1: true, a2: false, a3: false, a4: false }],
+    ["+A2 깊이 곡선", { a1: true, a2: true, a3: false, a4: false }],
+    ["+A3 닿은 자리", { a1: true, a2: true, a3: true, a4: false }],
+    ["+A4 당김 긴장", { a1: true, a2: true, a3: true, a4: true }]
+  ];
+  function runAll(noise) {
+    var rows = [];
+    AB_STEPS.forEach(function (st) { var r = runScenarios(st[1], noise == null ? DEV.testNoise : noise, 7); rows.push({ name: st[0], poke: r.poke, stretch: r.stretch }); });
+    return rows;
+  }
+  function fmt(v, d) { return (v == null || isNaN(v)) ? "-" : v.toFixed(d); }
+  function rowsToText(rows) {
+    var out = "누르기: 검지로 0.3 깊이에 2초 유지 (입력 떨림 σ=" + DEV.testNoise + ")\n";
+    out += "단계            눌림  입력σ 출력σ 깜빡임 상승s 정착s\n";
+    rows.forEach(function (r) { var p = r.poke; out += (r.name + "              ").slice(0, 14) + " " + fmt(p.dent, 3) + " " + fmt(p.rawStd, 4) + " " + fmt(p.outStd, 4) + "  " + (p.flick + "   ").slice(0, 4) + "  " + fmt(p.rise, 2) + "  " + fmt(p.settle, 2) + "\n"; });
+    out += "※ 입력σ→출력σ가 작아질수록 떨림이 걸러진 것, 눌림은 닿은 자리의 실제 깊이\n\n당기기: 두 손으로 집어 늘린 뒤 놓음\n";
+    out += "단계            최대폭 되튕김% 정착s 소리\n";
+    rows.forEach(function (r) { var s = r.stretch; out += (r.name + "              ").slice(0, 14) + " " + fmt(s.width, 2) + "    " + fmt(s.under * 100, 1) + "    " + fmt(s.settle, 2) + "   " + s.pops + "\n"; });
+    return out;
+  }
+
+  /* ---------- 녹화 / 재생 (같은 손 움직임으로 반복 비교) ---------- */
+  function flat(lm) { var a = []; for (var i = 0; i < lm.length; i++) a.push(+lm[i].x.toFixed(4), +lm[i].y.toFixed(4), +lm[i].z.toFixed(4)); return a; }
+  function unflat(a) { var o = []; for (var i = 0; i < a.length; i += 3) o.push({ x: a[i], y: a[i + 1], z: a[i + 2] }); return o; }
+  function playbackTick(now, dt) {
+    var d = DEV.rdata;
+    if (!d || !d.frames.length) return;
+    DEV.pt += dt;
+    var last = d.frames[d.frames.length - 1].t;
+    if (DEV.pt > last + 0.4) { DEV.pt = 0; DEV.pi = 0; hands[0] = hands[1] = null; return; }
+    while (DEV.pi < d.frames.length && d.frames[DEV.pi].t <= DEV.pt) {
+      var f = d.frames[DEV.pi++];
+      for (var j = 0; j < f.h.length; j++) ingestLandmarks(unflat(f.h[j].lm), f.h[j].wl ? unflat(f.h[j].wl) : null, f.h[j].s, now);
+    }
+  }
+
+  /* ---------- 트랙패드 핀치: 두 손가락을 벌리면 늘어나고, 모으면 눌림 ---------- */
+  var pinch = { active: false, s: 0, t: 0, base: 0 };
+  function pinchTouch() { pinch.active = true; pinch.t = performance.now(); }
+  canvas.addEventListener("wheel", function (ev) {
+    if (!ev.ctrlKey || !PINCH_OK()) return;            // 트랙패드 핀치는 ctrl+휠로 들어옴
+    ev.preventDefault();
+    ensureAudio();
+    pinchTouch();
+    pinch.s = Math.max(-0.6, Math.min(1.2, pinch.s - ev.deltaY * 0.01));
+  }, { passive: false });
+  window.addEventListener("gesturestart", function (e) { if (!PINCH_OK()) return; e.preventDefault(); pinch.base = pinch.s; pinchTouch(); });
+  window.addEventListener("gesturechange", function (e) { if (!PINCH_OK()) return; e.preventDefault(); pinch.s = Math.max(-0.6, Math.min(1.2, pinch.base + (e.scale - 1) * 1.4)); pinchTouch(); });
+  window.addEventListener("gestureend", function (e) { if (!PINCH_OK()) return; e.preventDefault(); pinch.t = 0; });
+  function pinchTick() {                                // 손가락이 멈추고 잠시 지나면 놓은 것으로 봄
+    if (pinch.active && performance.now() - pinch.t > 350) { pinch.active = false; pinch.s = 0; if (typeof playRelease === "function") playRelease(0.5); }
+  }
+  var _pAx = new THREE.Vector3(), _pQ = new THREE.Quaternion();
+  function pinchAxisLocal() { _pQ.copy(mesh.quaternion).invert(); return _pAx.set(1, 0, 0).applyQuaternion(_pQ).normalize(); }
+  /* ---------- 마우스·트랙패드 모드 (카메라 없이) ---------- */
+  var mouseOn = false;
+  var PINCH_OK = function () { return document.getElementById("intro").hidden; };
+  var mray = new THREE.Raycaster(), mndc = new THREE.Vector2();
+  var mp = { down: false, dragging: false, cp: new THREE.Vector3(), n: new THREE.Vector3(), start: new THREE.Vector3(), plane: new THREE.Plane(), pull: new THREE.Vector3(), pressure: 0, sx: 0, sy: 0 };
+  function mSetRay(ev) {
+    var r = canvas.getBoundingClientRect();
+    mndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    mray.setFromCamera(mndc, camera);
+  }
+  canvas.addEventListener("pointerdown", function (ev) {
+    if (!mouseOn) return;
+    mSetRay(ev); mesh.updateMatrixWorld(true);
+    var hs = mray.intersectObject(mesh, false); if (!hs.length) return;
+    var h = hs[0];
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+    mp.down = true; mp.dragging = false; mp.pressure = 0; mp.sx = ev.clientX; mp.sy = ev.clientY;
+    mp.cp.copy(mesh.worldToLocal(h.point.clone())); mp.n.copy(h.face.normal).normalize();
+    mp.start.copy(h.point);
+    mp.plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()).negate(), h.point);
+    mp.pull.set(0, 0, 0);
+    ensureAudio(); playPress(0.4);
+  });
+  canvas.addEventListener("pointermove", function (ev) {
+    if (!mouseOn || !mp.down) return;
+    if (!mp.dragging && Math.hypot(ev.clientX - mp.sx, ev.clientY - mp.sy) > 8) mp.dragging = true;   // 8px 넘게 움직이면 '늘리기'
+    if (!mp.dragging) return;
+    mSetRay(ev);
+    var pt = new THREE.Vector3();
+    if (mray.ray.intersectPlane(mp.plane, pt)) {
+      pt.sub(mp.start);
+      if (pt.length() > 1.7) { mp.down = false; mp.dragging = false; playRelease(0.5); return; }   // 너무 멀리 당기면 미끄러져 빠짐
+      mp.pull.copy(pt.applyQuaternion(mesh.quaternion.clone().invert()));
+    }
+  });
+  function mUp() { if (mp.down) playRelease(0.4); mp.down = false; mp.dragging = false; }
+  canvas.addEventListener("pointerup", mUp);
+  canvas.addEventListener("pointercancel", mUp);
+  function mouseContribute(dt) {
+    if (mouseOn && mp.down && !mp.dragging) {
+      mp.pressure = Math.min(1, mp.pressure + dt / 1.2);           // 오래 누를수록 깊어짐
+      var e = 1 - Math.pow(1 - mp.pressure, 2);
+      contacts.push({ cp: mp.cp, n: mp.n, depth: 0.12 + 0.38 * e, r: 0.09, tip: true });
+    } else if (mouseOn && mp.down && mp.dragging) {
+      grabsList.push({ cp: mp.cp, vec: mp.pull.clone() });
+    }
+    if (pinch.active) {
+      var ax = pinchAxisLocal().clone(), ps = pinch.s * 0.6;
+      if (ps >= 0) {
+        grabsList.push({ cp: ax.clone().multiplyScalar(0.5), vec: ax.clone().multiplyScalar(ps) });
+        grabsList.push({ cp: ax.clone().multiplyScalar(-0.5), vec: ax.clone().multiplyScalar(-ps) });
+      } else {
+        contacts.push({ cp: ax.clone().multiplyScalar(0.5), n: ax.clone(), depth: -ps, r: 0.2, tip: false });
+        contacts.push({ cp: ax.clone().multiplyScalar(-0.5), n: ax.clone().negate(), depth: -ps, r: 0.2, tip: false });
+      }
+    }
+  }
+  function mouseCard() {
+    var st = mp.down ? (mp.dragging ? "🖱️ 끌어서 늘리는 중" : "🖱️ 꾹 누르는 중")
+      : pinch.active ? (pinch.s >= 0 ? "🤏 트랙패드로 벌려서 늘리는 중" : "🤏 트랙패드로 모아서 누르는 중") : "🖱️ 마우스·트랙패드 모드";
+    var bars = mp.down && !mp.dragging ? bar("눌림", mp.pressure) : (mp.dragging || (pinch.active && pinch.s > 0)) ? bar("늘어남", strainNow) : "";
+    return '<div class="hud-hand"><div class="st">' + st + '</div><div class="tip">클릭한 채로 두기: 누르기 · 끌기: 늘리기 · 트랙패드 두 손가락 벌리기: 양쪽으로 늘리기</div>' + bars + '</div>';
+  }
+  function setWobTargets() {
+    var px = 0, py = 0, pz = 0, gx = 0, gy = 0, gz = 0, gl = 0, i;
+    for (i = 0; i < contacts.length; i++) { var c = contacts[i]; px -= c.n.x * c.depth; py -= c.n.y * c.depth; pz -= c.n.z * c.depth; }
+    for (i = 0; i < grabsList.length; i++) { var v = grabsList[i].vec; gx += v.x; gy += v.y; gz += v.z; gl += v.length(); }
+    wob.tx = px * 0.3 + gx * 0.15; wob.tz = pz * 0.3 + gz * 0.15;
+    wob.tq = Math.min(0.25, Math.sqrt(px * px + py * py + pz * pz) * 0.3) + Math.min(0.2, gl * 0.08);
+  }
+
+  /* ---------- UI ---------- */
+  var swWrap = document.getElementById("swatches");
+  COLORS.forEach(function (c, i) {
+    var b = document.createElement("button");
+    b.className = "sw";
+    b.style.background = c.hex;
+    b.setAttribute("aria-label", c.name);
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function () {
+      frontTint.value.set(c.hex);
+      backMat.color.copy(backColor(c.hex));
+      Array.prototype.forEach.call(swWrap.children, function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+    });
+    swWrap.appendChild(b);
+  });
+  // 질감: 젤리 → 유리 → 푸딩
+  var glassBtn = document.getElementById("glassBtn");
+  var TEXTURES = ["젤리", "유리", "푸딩"], texIdx = 0;
+  function setTexture(i) {
+    texIdx = i;
+    var glass = i === 1, pud = i === 2;
+    glassU.value = glass ? 1 : 0; puddingU.value = pud ? 1 : 0;
+    mat.roughness = glass ? 0.04 : pud ? 0.1 : 0.16;
+    mat.clearcoat = glass ? 0.6 : pud ? 1.0 : 0.65;
+    mat.clearcoatRoughness = glass ? 0.03 : pud ? 0.06 : 0.15;
+    mat.envMapIntensity = glass ? 0.25 : pud ? 0.55 : 0.5;
+    glassBtn.textContent = "질감: " + TEXTURES[i];
+  }
+  glassBtn.addEventListener("click", function () { setTexture((texIdx + 1) % TEXTURES.length); });
+  var glitterBtn = document.getElementById("glitter");
+  glitterBtn.addEventListener("click", function () {
+    var on = glitterU.value === 0;
+    glitterU.value = on ? 1 : 0;
+    glitterBtn.setAttribute("aria-pressed", on);
+    glitterBtn.textContent = on ? "반짝이 켬" : "반짝이 끔";
+  });
+  var muteBtn = document.getElementById("mute");
+  var SOUNDS = [["wet", "질척"], ["pop", "톡"], ["off", "끔"]];
+  var soundIdx = 0;
+  muteBtn.addEventListener("click", function () {
+    soundIdx = (soundIdx + 1) % SOUNDS.length;
+    soundMode = SOUNDS[soundIdx][0];
+    muteBtn.textContent = "소리: " + SOUNDS[soundIdx][1];
+    if (soundMode !== "off") ensureAudio();
+  });
+  document.getElementById("recover").addEventListener("input", function (e) { params.recover = parseFloat(e.target.value); });
+  document.getElementById("gain").addEventListener("input", function (e) { params.gain = parseFloat(e.target.value); });
+  document.getElementById("calib").addEventListener("click", function () {
+    if (!camOn) { setStatus("카메라 모드에서 쓸 수 있어요"); return; }
+    autoCal = true; calibAt = 0;
+    setStatus("편한 거리에서 손을 보여 주세요. 그 위치가 기준이 돼요");
+  });
+  var handStyleBtn = document.getElementById("handStyleBtn");
+  handStyleBtn.addEventListener("click", function () {
+    handStyle = (handStyle + 1) % STYLES.length;
+    handStyleBtn.textContent = "손: " + STYLES[handStyle].name;
+    applyHandStyle();
+  });
+  var camToggle = document.getElementById("camToggle");
+  function setVideoShown(show) {
+    document.body.classList.toggle("novideo", !show);
+    camToggle.setAttribute("aria-pressed", show);
+    camToggle.textContent = show ? "내 영상 보임" : "내 영상 숨김";
+  }
+  camToggle.addEventListener("click", function () { setVideoShown(document.body.classList.contains("novideo")); });
+  var settingsBtn = document.getElementById("settingsBtn"), panelEl = document.getElementById("panel");
+  function showControls() { settingsBtn.hidden = false; panelEl.hidden = true; settingsBtn.setAttribute("aria-expanded", "false"); }
+  settingsBtn.addEventListener("click", function () {
+    panelEl.hidden = !panelEl.hidden;
+    settingsBtn.setAttribute("aria-expanded", String(!panelEl.hidden));
+    settingsBtn.textContent = panelEl.hidden ? "설정" : "닫기";
+  });
+  document.getElementById("btnCam").addEventListener("click", startCamera);
+  document.getElementById("btnMouse").addEventListener("click", function () {
+    mouseOn = true; demoOn = false; stopCamera(); hands[0] = hands[1] = null;
+    document.getElementById("intro").hidden = true;
+    showControls(); setVideoShown(false); ensureAudio();
+    setStatus("클릭한 채로 두면 눌리고, 끌면 늘어나요. 트랙패드는 두 손가락을 벌려 보세요");
+  });
+  document.getElementById("btnDemo").addEventListener("click", function () {
+    demoOn = true; camOn = false; mouseOn = false;
+    document.getElementById("intro").hidden = true;
+    showControls();
+    setVideoShown(false);
+    ensureAudio();
+  });
+  document.getElementById("backIntro").addEventListener("click", function () {
+    stopCamera(); demoOn = false; mouseOn = false; hands[0] = hands[1] = null;
+    document.getElementById("intro").hidden = false;
+    document.getElementById("panel").hidden = true;
+    document.getElementById("settingsBtn").hidden = true;
+    setVideoShown(true);
+    setStatus("");
+  });
+
+  /* ---------- 개발자 모드 화면 ---------- */
+  var devEl = document.getElementById("dev"), devBody = document.getElementById("devBody");
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function devSection(title) { var s = el("section", "dv-sec"); s.appendChild(el("h3", null, title)); devBody.appendChild(s); return s; }
+  function devSlider(parent, label, obj, key, min, max, step, hint) {
+    var row = el("label", "dv-row"), name = el("span", null, label), inp = document.createElement("input"), val = el("span", "dv-val", String(obj[key]));
+    inp.type = "range"; inp.min = min; inp.max = max; inp.step = step; inp.value = obj[key];
+    if (hint) row.title = hint;
+    inp.addEventListener("input", function () { obj[key] = parseFloat(inp.value); val.textContent = String(obj[key]); });
+    row.appendChild(name); row.appendChild(inp); row.appendChild(val); parent.appendChild(row);
+    return inp;
+  }
+  function devFlag(parent, label, key, desc) {
+    var wrap = el("div", "dv-flag"), lab = el("label", "dv-check"), cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = FLAGS[key];
+    cb.addEventListener("change", function () { FLAGS[key] = cb.checked; });
+    lab.appendChild(cb); lab.appendChild(el("b", null, label));
+    wrap.appendChild(lab); wrap.appendChild(el("div", "dv-desc", desc));
+    parent.appendChild(wrap);
+    return wrap;
+  }
+  (function buildDev() {
+    var s1 = devSection("개선 항목 (끄고 켜며 비교)");
+    var f1 = devFlag(s1, "A1 누르기 안정화", "a1", "닿음 판정에 여유를 두고, 누르는 방향을 고정하고, 깊이 떨림을 걸러 줘요");
+    devSlider(f1, "변화 속도 한계", TUNE, "a1Rate", 1, 10, 0.5, "눌림 깊이가 1초에 변할 수 있는 최대량");
+    devSlider(f1, "닿음 문턱", TUNE, "a1Enter", 0, 0.05, 0.005);
+    devSlider(f1, "떨어짐 문턱", TUNE, "a1Exit", 0, 0.08, 0.005);
+    devSlider(f1, "필터 강도", TUNE, "a1Cut", 0.5, 8, 0.1, "낮을수록 부드럽지만 반응이 느려요");
+    devSlider(f1, "빠를 때 풀림", TUNE, "a1Beta", 0, 3, 0.1, "낮을수록 떨림을 더 걸러내지만 빠른 움직임에 둔해져요");
+    var f2 = devFlag(s1, "A2 깊이 곡선(저항감)", "a2", "손을 뻗은 만큼보다 덜 눌리게 해서 저항이 있는 것처럼 느끼게 해요");
+    devSlider(f2, "비율(1보다 작으면 뻑뻑)", TUNE, "a2Gain", 0.3, 1.6, 0.05);
+    devSlider(f2, "눌림 한계", TUNE, "a2Sat", 0.3, 0.9, 0.05);
+    var f3 = devFlag(s1, "A3 닿은 자리 강조", "a3", "손가락 끝에 보조개를 만들고, 눌린 곳은 어둡게, 둘레는 밝게 보여 줘요");
+    devSlider(f3, "보조개 깊이", TUNE, "a3Dimple", 0, 0.8, 0.05);
+    devSlider(f3, "그림자 세기", TUNE, "a3Shade", 0, 1.5, 0.05);
+    devFlag(s1, "부피 보존", "vol", "눌린 만큼 옆이 부풀어서 전체 부피가 그대로 유지돼요");
+    var f4 = devFlag(s1, "A4 당김의 긴장감", "a4", "늘릴수록 소리가 높아지고, 놓으면 탄성 있게 되튕겨요");
+    devSlider(f4, "되튕김", TUNE, "a4Over", 0, 1, 0.05);
+    devSlider(f4, "소리 높낮이 변화", TUNE, "a4Tone", 0, 2, 0.1);
+
+    var s2 = devSection("실시간 수치");
+    DEV.liveEl = el("pre", "dv-pre", "…"); s2.appendChild(DEV.liveEl);
+    DEV.chartEl = document.createElement("canvas"); DEV.chartEl.width = 320; DEV.chartEl.height = 96; DEV.chartEl.className = "dv-chart";
+    s2.appendChild(DEV.chartEl);
+    s2.appendChild(el("div", "dv-desc", "빨강: 실제 파고든 깊이 / 파랑: 적용된 깊이 / 초록: 늘어난 정도"));
+
+    var s3 = devSection("테스트");
+    devSlider(s3, "추적 떨림 주입 σ", DEV, "noise", 0, 0.08, 0.005, "화면에서 손 깊이가 흔들리는 상황을 일부러 만들어요");
+    devSlider(s3, "자동 테스트 떨림 σ", DEV, "testNoise", 0, 0.08, 0.005);
+    var b = el("div", "dv-btns");
+    var bRun = el("button", null, "A/B 자동 비교 실행");
+    var bCopy = el("button", null, "결과 복사");
+    b.appendChild(bRun); b.appendChild(bCopy); s3.appendChild(b);
+    DEV.outEl = el("pre", "dv-pre", "버튼을 누르면 같은 입력으로 A1~A4를 차례로 켜며 측정해요"); s3.appendChild(DEV.outEl);
+    bRun.addEventListener("click", function () {
+      DEV.outEl.textContent = "측정 중…";
+      setTimeout(function () { DEV.lastText = rowsToText(runAll()); DEV.outEl.textContent = DEV.lastText; }, 30);
+    });
+    bCopy.addEventListener("click", function () {
+      if (navigator.clipboard && DEV.lastText) navigator.clipboard.writeText(DEV.lastText).then(function () { bCopy.textContent = "복사됨"; setTimeout(function () { bCopy.textContent = "결과 복사"; }, 1200); });
+    });
+
+    var s4 = devSection("녹화 / 재생");
+    var rb = el("div", "dv-btns"), bRec = el("button", null, "녹화 시작"), bPlay = el("button", null, "재생"), bExp = el("button", null, "내보내기"), bImp = el("button", null, "불러오기");
+    rb.appendChild(bRec); rb.appendChild(bPlay); rb.appendChild(bExp); rb.appendChild(bImp); s4.appendChild(rb);
+    DEV.recEl = el("div", "dv-desc", "카메라 모드에서 녹화하면, 같은 손 움직임으로 설정을 바꿔 가며 반복 확인할 수 있어요");
+    s4.appendChild(DEV.recEl);
+    var fileIn = document.createElement("input"); fileIn.type = "file"; fileIn.accept = "application/json"; fileIn.hidden = true; s4.appendChild(fileIn);
+    bRec.addEventListener("click", function () {
+      if (!DEV.rec) {
+        if (!camOn) { DEV.recEl.textContent = "카메라로 시작한 상태에서만 녹화할 수 있어요"; return; }
+        DEV.frames = []; DEV.t0 = performance.now() / 1000; DEV.rec = true; bRec.textContent = "녹화 정지"; DEV.recEl.textContent = "녹화 중…";
+      } else {
+        DEV.rec = false; bRec.textContent = "녹화 시작";
+        DEV.rdata = { v: 1, refSize: refSize, gain: params.gain, frames: DEV.frames };
+        DEV.recEl.textContent = "녹화 완료: " + DEV.frames.length + "프레임. '재생'으로 반복 확인하세요";
+      }
+    });
+    bPlay.addEventListener("click", function () {
+      if (!DEV.rdata) { DEV.recEl.textContent = "녹화하거나 불러온 데이터가 없어요"; return; }
+      DEV.playing = !DEV.playing;
+      if (DEV.playing) {
+        demoOn = false; camOn = false; refSize = DEV.rdata.refSize; params.gain = DEV.rdata.gain;
+        DEV.pt = 0; DEV.pi = 0; hands[0] = hands[1] = null; bPlay.textContent = "재생 정지"; DEV.recEl.textContent = "재생 중(반복)";
+        document.getElementById("intro").hidden = true;
+      } else { bPlay.textContent = "재생"; hands[0] = hands[1] = null; DEV.recEl.textContent = "재생을 멈췄어요"; }
+    });
+    bExp.addEventListener("click", function () {
+      if (!DEV.rdata) { DEV.recEl.textContent = "내보낼 녹화가 없어요"; return; }
+      var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(DEV.rdata)], { type: "application/json" })); a.download = "hand-recording.json"; a.click();
+    });
+    bImp.addEventListener("click", function () { fileIn.click(); });
+    fileIn.addEventListener("change", function () {
+      var f = fileIn.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () { try { DEV.rdata = JSON.parse(rd.result); DEV.recEl.textContent = "불러왔어요: " + DEV.rdata.frames.length + "프레임"; } catch (e) { DEV.recEl.textContent = "파일을 읽지 못했어요"; } };
+      rd.readAsText(f);
+    });
+  })();
+
+  var fpsAcc = 0, fpsN = 0, fpsShown = 0;
+  function devTick(dt) {
+    fpsAcc += dt; fpsN++;
+    if (fpsAcc >= 0.5) { fpsShown = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; }
+  }
+  setInterval(function () {
+    if (!DEV.on) return;
+    var t = "FPS " + fpsShown.toFixed(0) + "   손 " + (hands[0] ? 1 : 0) + (hands[1] ? "+1" : "") + "   모드 " + (demoOn ? "데모" : camOn ? "카메라" : DEV.playing ? "재생" : "-") + "\n";
+    t += "부피 변화 " + ((volumeWith(disp) - V0) / V0 * 100).toFixed(2) + "%\n";
+    t += "에너지 " + energy.toFixed(3) + "  속도 " + speed.toFixed(3) + "  늘어남 " + strainNow.toFixed(2) + "\n";
+    for (var s = 0; s < 2; s++) {
+      var H = hands[s]; if (!H) continue;
+      t += "[손" + s + "] 크기 " + (H.size == null ? "-" : H.size.toFixed(3)) + "  집기비율 " + H.ratio.toFixed(2) + (H.pinching ? "(집음)" : "") + "  m당 " + (H.upm ? H.upm.toFixed(1) : "-") + "\n";
+    }
+    t += "닿은 점:\n";
+    var any = false;
+    for (var k in devStats.cs) { var c = devStats.cs[k]; if (!c.on) continue; any = true; t += " " + k + "  파고듦 " + c.raw.toFixed(3) + "  적용 " + c.out.toFixed(3) + "  전환 " + c.trans + "\n"; }
+    if (!any) t += " 없음\n";
+    DEV.liveEl.textContent = t;
+    // 그래프
+    var cv = DEV.chartEl, g = cv.getContext("2d"), W = cv.width, Hh = cv.height, ch = DEV.chart;
+    g.clearRect(0, 0, W, Hh);
+    g.strokeStyle = "rgba(120,110,190,.35)"; g.beginPath(); g.moveTo(0, Hh - 1); g.lineTo(W, Hh - 1); g.moveTo(0, Hh * 0.25); g.lineTo(W, Hh * 0.25); g.stroke();
+    var cols = ["#ff5a6e", "#4aa8ff", "#37c66b"];
+    for (var li = 0; li < 3; li++) {
+      g.strokeStyle = cols[li]; g.lineWidth = 1.5; g.beginPath();
+      for (var i = 0; i < ch.length; i++) { var x = i / 360 * W, y = Hh - clamp(ch[i][li] / 0.8, 0, 1) * (Hh - 4) - 2; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+      g.stroke();
+    }
+  }, 120);
+
+  var devBtn = document.getElementById("devBtn");
+  function setDev(on) {
+    DEV.on = on; devEl.hidden = !on;
+    devBtn.setAttribute("aria-pressed", String(on));
+    devBtn.textContent = on ? "개발자 모드 끄기" : "개발자 모드";
+  }
+  devBtn.addEventListener("click", function () { setDev(!DEV.on); });
+  document.getElementById("devClose").addEventListener("click", function () { setDev(false); });
+  window.addEventListener("keydown", function (e) { if ((e.key === "d" || e.key === "D") && !/INPUT|TEXTAREA/.test((e.target.tagName || ""))) setDev(!DEV.on); });
+  if (/[?&]dev\b/.test(location.search)) setDev(true);
+
+  /* ---------- 손동작 안내 ---------- */
+  var guideEl = document.getElementById("guide");
+  function openGuide() { guideEl.hidden = false; document.getElementById("guideClose").focus(); }
+  function closeGuide() { guideEl.hidden = true; }
+  document.getElementById("btnGuide").addEventListener("click", openGuide);
+  document.getElementById("guideBtn").addEventListener("click", openGuide);
+  document.getElementById("guideClose").addEventListener("click", closeGuide);
+  guideEl.addEventListener("click", function (e) { if (e.target === guideEl) closeGuide(); });
+  window.addEventListener("keydown", function (e) { if (e.key === "Escape" && !guideEl.hidden) closeGuide(); });
+
+  /* ---------- 지금 인식된 손동작 표시 ---------- */
+  var hudEl = document.getElementById("hud");
+  var FINGER_NAME = { 4: "엄지", 8: "검지", 12: "중지", 16: "약지", 20: "새끼손가락" };
+  function bar(label, v) { return '<div class="hud-bar"><span>' + label + '</span><i><b style="width:' + Math.round(clamp(v, 0, 1) * 100) + '%"></b></i></div>'; }
+  function describeHand(H) {
+    var st, tip = "", bars = "";
+    if (H.grab) {
+      st = "🤏 집어서 당기는 중";
+      tip = "손가락을 벌리면 놓여요";
+      bars = bar("늘어남", strainNow);
+    } else {
+      var touched = [], deepest = 0, k;
+      for (k in FINGER_NAME) if (H.touch && H.touch[k]) { touched.push(FINGER_NAME[k]); var c = H.cs && H.cs["t" + k]; if (c) deepest = Math.max(deepest, c.out); }
+      var palm = H.touch && H.touch.palm;
+      if (palm) { var cp = H.cs && H.cs.palm; if (cp) deepest = Math.max(deepest, cp.out); }
+      if (touched.length || palm) {
+        var last = touched[touched.length - 1] || "";
+        st = palm ? "✋ 손바닥으로 누르는 중" : "👆 " + touched.join("·") + (/락$/.test(last) ? "으로" : "로") + " 누르는 중";
+        tip = "화면 쪽으로 더 뻗으면 더 깊이 눌려요";
+        bars = bar("눌림", deepest / 0.6);
+      } else {
+        var gap = 9, rT = H.rTip || R_TIP;
+        for (var t = 0; t < TIPS.length; t++) { var si = surfaceInfo(H.pts[TIPS[t]]); gap = Math.min(gap, si.sdf - rT); }
+        var close = clamp(1 - gap / 0.6, 0, 1);
+        if (H.pinching) { st = "🤏 집었지만 큐브에서 멀어요"; tip = "손가락을 벌렸다가 큐브 가장자리 가까이에서 다시 집어 보세요"; }
+        else if (gap < 0.15) { st = "거의 닿았어요"; tip = "화면 쪽으로 조금만 더 뻗어 보세요"; }
+        else { st = "손이 보여요"; tip = "화면 쪽으로 손을 뻗으면 큐브에 닿아요"; }
+        bars = bar("닿기까지", close);
+        if (!H.pinching) {
+          var pr = clamp((0.6 - H.ratio) / (0.6 - 0.32), 0, 1);
+          if (pr > 0.05) bars += bar("집기", pr);
+        }
+      }
+    }
+    return { st: st, tip: tip, bars: bars };
+  }
+  setInterval(function () {
+    var show = (camOn || demoOn || DEV.playing || mouseOn) && document.getElementById("intro").hidden;
+    hudEl.hidden = !show;
+    if (!show) return;
+    var html = "", any = false;
+    for (var s = 0; s < 2; s++) {
+      var H = hands[s]; if (!H) continue; any = true;
+      var d = describeHand(H);
+      html += '<div class="hud-hand"><div class="who">' + (s === 0 ? "화면 왼쪽 손" : "화면 오른쪽 손") + '</div><div class="st">' + d.st + '</div><div class="tip">' + d.tip + '</div>' + d.bars + '</div>';
+    }
+    if (mouseOn) { hudEl.innerHTML = mouseCard(); return; }
+    if (!any) html = '<div class="hud-hand"><div class="st">손이 보이지 않아요</div><div class="tip">' + (camOn ? "카메라에 손 전체가 보이게 해 주세요" : "잠시 후 데모 손이 나타나요") + '</div></div>';
+    hudEl.innerHTML = html;
+  }, 120);
+
+  /* ---------- 크기 / 루프 ---------- */
+  function resize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.position.z = w / h < 0.8 ? 3.7 / Math.max(0.55, w / h * 1.3) : 3.7;
+    camera.position.z = Math.min(camera.position.z, 6.5);
+    camera.updateProjectionMatrix();
+    camera.lookAt(0, 0, 0);
+    resize2d();
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  var last = performance.now();
+  function frame(nowMs) {
+    var dt = Math.min(0.033, (nowMs - last) / 1000);
+    last = nowMs;
+    var now = nowMs / 1000;
+    camera.updateMatrixWorld(true);
+
+    if (demoOn) demoUpdate(now, now);
+    else if (DEV.playing) playbackTick(now, dt);
+    else if (camOn) detect(now);
+
+    physicsTick(now, dt, true);
+    updateBody(dt, now);
+    devTick(dt);
+    timeU.value = now;
+    updateSound(dt);
+    updateMarkers();
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  recomputeNormals();
+  requestAnimationFrame(frame);
+  window.__air = { FLAGS: FLAGS, TUNE: TUNE, DEV: DEV, runScenarios: runScenarios, runAll: runAll, rowsToText: rowsToText, hands: hands, mesh: mesh, state: function () { return { energy: energy, contacts: contacts.length, grabs: grabsList.length, model: window.__handModel || null, cam: camOn }; } };
+})();
+</script>
+</body>
+</html>

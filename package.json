@@ -1,0 +1,12 @@
+{
+  "name": "squishy-lab",
+  "private": true,
+  "description": "웹 말랑이 장난감 두 개 (정적 파일, 빌드 없음). package.json은 스모크 테스트용으로만 씀.",
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

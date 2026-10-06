@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>말랑 연구소</title>
+<meta name="description" content="손끝으로 만지는 웹 말랑이 두 가지: 바닥 위의 말랑이 큐브와 공중에 뜬 말랑이">
+<style>
+  :root {
+    --bg: #f6f1ea;
+    --card: #ffffff;
+    --ink: #2a2522;
+    --muted: #6f655e;
+    --line: #e6ddd2;
+    --accent: #e0607e;
+    --accent2: #5b8def;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1817;
+      --card: #262220;
+      --ink: #f2ece6;
+      --muted: #b0a59c;
+      --line: #3a3431;
+      --accent: #ff86a1;
+      --accent2: #86a9ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: max(40px, env(safe-area-inset-top)) 16px max(40px, env(safe-area-inset-bottom));
+  }
+  h1 { font-size: clamp(28px, 7vw, 40px); margin: 0 0 6px; letter-spacing: -0.02em; }
+  .lead { color: var(--muted); margin: 0 0 28px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
+  a.card {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 22px 20px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    color: inherit; text-decoration: none;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  a.card:hover, a.card:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+  .emoji { font-size: 34px; line-height: 1; }
+  .card h2 { margin: 4px 0 0; font-size: 21px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .tags span { font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+  .go { margin-top: auto; padding-top: 6px; font-weight: 600; color: var(--accent); }
+  .card.air .go { color: var(--accent2); }
+  footer { margin-top: 32px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>말랑 연구소</h1>
+  <p class="lead">손끝으로 누르고 당기는 웹 말랑이 두 가지. 설치 없이 브라우저에서 바로 열려요.</p>
+
+  <div class="grid">
+    <a class="card cube" href="nice-cube/">
+      <span class="emoji" aria-hidden="true">🧊</span>
+      <h2>나이스 큐브</h2>
+      <p>바닥에 놓인 말랑이를 누르고, 당기고, 두 손가락으로 집어 보세요. 질감·반짝이·소리도 바꿀 수 있어요.</p>
+      <div class="tags"><span>마우스</span><span>트랙패드</span><span>아이폰 터치</span></div>
+      <span class="go">열기 →</span>
+    </a>
+    <a class="card air" href="air-squishy/">
+      <span class="emoji" aria-hidden="true">🖐️</span>
+      <h2>공중 말랑이</h2>
+      <p>웹캠으로 손을 인식해서 허공에 뜬 말랑이를 직접 찌르고 집어 늘려요. 카메라 없이 마우스로도 돼요.</p>
+      <div class="tags"><span>웹캠 손 추적</span><span>마우스</span><span>트랙패드</span></div>
+      <span class="go">열기 →</span>
+    </a>
+  </div>
+
+  <footer>공중 말랑이의 카메라 영상은 기기 안에서만 처리되고 서버로 보내지지 않아요.</footer>
+</main>
+</body>
+</html>
