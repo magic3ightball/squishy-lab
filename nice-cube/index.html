@@ -1182,7 +1182,59 @@
     if (typeof glow !== "undefined") glow.material.opacity = (glass || wat) ? 0.8 : 0.55;
     glassBtn.textContent = "질감: " + TEXTURES[i];
   }
-  glassBtn.addEventListener("click", function () { setTexture((texIdx + 1) % TEXTURES.length); });
+  glassBtn.addEventListener("click", function () {
+    setTexture((texIdx + 1) % TEXTURES.length);
+    if (texIdx === 2) startShake();   // 푸딩으로 바꾸는 순간(탭 안에서) 동작 센서 권한을 요청해야 아이폰에서 허용 창이 뜸
+  });
+
+  /* ---------- 폰 흔들기: 푸딩일 때 폰을 흔들면 큐브가 관성으로 출렁임 ---------- */
+  var shake = { on: false, t: 0 }, _shV = new THREE.Vector3(), _shQ = new THREE.Quaternion();
+  function startShake() {
+    if (shake.on || !IS_MOBILE || !window.DeviceMotionEvent) return;
+    var DME = window.DeviceMotionEvent;
+    if (typeof DME.requestPermission === "function") {         // iOS 13+: 사용자 탭 안에서 권한 요청 필요
+      DME.requestPermission().then(function (r) {
+        if (r === "granted") listenShake();
+        else shakeMsg("폰 흔들기를 쓰려면 '동작 및 방향' 접근을 허용해 주세요.<br>사파리를 완전히 닫았다 다시 열면 다시 물어봐요.");
+      }).catch(function () { shakeMsg("이 브라우저에서는 폰 흔들기를 쓸 수 없어요."); });
+    } else listenShake();                                       // 안드로이드 등은 권한 없이 바로 받음
+  }
+  function listenShake() {
+    shake.on = true;
+    window.addEventListener("devicemotion", onShake);
+    shakeMsg("폰을 흔들어 보세요. 푸딩이 출렁여요.");
+  }
+  function shakeMsg(html) {
+    hint.innerHTML = html; hint.style.opacity = 1;
+    clearTimeout(shake.msgT); shake.msgT = setTimeout(function () { hint.style.opacity = 0; }, 3500);
+  }
+  function onShake(e) {
+    if (puddingU.value !== 1 || held || pinch.active) return;   // 푸딩일 때만, 만지는 중에는 손 입력을 우선
+    var a = e.acceleration;                                     // 중력을 뺀 가속도(m/s²)
+    if (!a || a.x == null) return;
+    var now = performance.now(), dt = Math.min(0.05, (now - (shake.t || now)) / 1000); shake.t = now;
+    if (!dt) return;
+    // 기기 축 → 화면 축 (가로로 돌려 들었을 때 보정)
+    var ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+    var c = Math.cos(ang), s = Math.sin(ang);
+    var sx = c * a.x - s * a.y, sy = s * a.x + c * a.y, sz = a.z;
+    var dead = 1.2;                                             // 손떨림 정도는 무시
+    function cut(v) { return Math.abs(v) < dead ? 0 : v - Math.sign(v) * dead; }
+    sx = cut(sx); sy = cut(sy); sz = cut(sz);
+    if (!sx && !sy && !sz) return;
+    // 화면 축은 카메라 기준 월드 축과 거의 같음(오른쪽=x, 위=y, 화면 밖=z). 큐브가 돌아간 만큼 큐브 기준으로 바꿈
+    _shQ.copy(mesh.quaternion).invert();
+    _shV.set(sx, sy, sz).applyQuaternion(_shQ);
+    var k = 1.6;                                                // 폰이 움직인 반대쪽으로 늦게 따라옴(관성)
+    wob.vx -= _shV.x * k * dt; wob.vz -= _shV.z * k * dt;
+    wob.vq += _shV.y * k * 0.8 * dt;                            // 위로 들면 눌려 납작, 내리면 늘어남
+    var lim = 0.45;                                             // 너무 세게 흔들어도 형태가 무너지지 않게
+    wob.sx = Math.max(-lim, Math.min(lim, wob.sx)); wob.sz = Math.max(-lim, Math.min(lim, wob.sz));
+    wob.q = Math.max(-0.35, Math.min(0.35, wob.q));
+    if (actx && soundMode === "wet" && Math.abs(wob.vx) + Math.abs(wob.vz) > 1.2 && now - (shake.sndT || 0) > 160) {
+      shake.sndT = now; burst(260 + Math.random() * 120, 1.3, 0.1, 0.05);   // 크게 출렁일 때 찰랑 소리
+    }
+  }
   var glitterBtn = document.getElementById("glitter");
   glitterBtn.addEventListener("click", function () {
     var on = glitterU.value === 0;

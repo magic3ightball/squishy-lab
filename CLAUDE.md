@@ -26,6 +26,7 @@
 - 아이폰 사파리:
   - `navigator.vibrate`를 지원하지 않는다. 진동은 있으면 쓰는 보조 효과로만 둔다.
   - 무음 모드(벨소리 스위치)에서는 WebAudio 소리가 나지 않는다. 버그로 오해하지 않는다.
+  - 폰 흔들기(nice-cube 푸딩)는 `DeviceMotionEvent.requestPermission()`을 **탭 이벤트 안에서 바로** 불러야 한다(현재는 질감 버튼 클릭). 거부하면 사파리를 완전히 닫기 전까지 다시 묻지 않는다. https에서만 동작.
   - 두 손가락 제스처(핀치)는 **포인터 이벤트**(pointerId 두 개의 거리)로 처리한다. 모바일에서 `gesturestart/change/end`는 페이지 확대를 막으려고 `preventDefault`만 한다.
   - 참고: 데스크톱 사파리에서는 트랙패드 핀치를 `gesturechange`의 `scale`로 받고, 크롬 계열은 `ctrlKey`가 붙은 `wheel`로 받는다. 두 경로를 모두 유지한다.
 
