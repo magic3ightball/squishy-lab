@@ -136,7 +136,7 @@
       <button id="modeBubble" aria-pressed="false" hidden>바풍</button>
     </div>
     <button id="glassBtn" class="iconbtn" aria-label="질감 바꾸기">질감: 젤리</button>
-    <button id="moreBtn" class="iconbtn" aria-expanded="true" aria-controls="more">설정 접기</button>
+    <button id="moreBtn" class="iconbtn" aria-expanded="false" aria-controls="more">설정</button>
   </div>
   <div id="more">
     <div class="row">
@@ -1256,7 +1256,7 @@
   var moreBtn = document.getElementById("moreBtn"), moreEl = document.getElementById("more");
   function setMore(open) { moreEl.hidden = !open; moreBtn.setAttribute("aria-expanded", String(open)); moreBtn.textContent = open ? "설정 접기" : "설정"; }
   moreBtn.addEventListener("click", function () { setMore(moreEl.hidden); });
-  setMore(!(IS_MOBILE || window.innerWidth < 600));
+  setMore(false);   // 처음에는 어느 화면에서든 접어 둠 (펼친 패널이 큐브를 가려서)
   document.addEventListener("touchend", function () { ensureAudio(); }, { passive: true });     // iOS: 터치가 끝날 때 소리 잠금 해제
   var hint = document.getElementById("hint");
   if (IS_MOBILE) hint.innerHTML = "큐브를 눌러 보세요. 빈 곳을 끌면 돌아가요.<br>두 손가락으로 벌리면 늘어나요. 물슬라임은 '바풍'으로 공기 풍선을 만들어요.";
